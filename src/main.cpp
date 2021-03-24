@@ -6,6 +6,8 @@
 #include <iostream>
 using namespace std;
 
+#include "lab1.cpp"
+
 int main(int argc, char** argv) {
 	char * qasmFileName = NULL;
 	char * couplingMapFileName = NULL;
@@ -42,7 +44,20 @@ int main(int argc, char** argv) {
 
 
 	//student code goes here?
-
+	int *mapping = pcr_lab1(firstGates, couplings, NULL, numPhysicalQubits);
+	if (mapping == NULL)
+	{
+		cout << "No complete initial mapping exists" << endl;
+	}
+	else
+	{
+		cout << "Initial mapping exists" << endl;
+		cout << "Logical Qubit : Physical Qubit" << endl;
+		for (int i = 0; i < numPhysicalQubits; i++)
+		{
+			cout << i << " : " << mapping[i] << endl;
+		}
+	}
 
 	//Exit the program:
 	return 0;
