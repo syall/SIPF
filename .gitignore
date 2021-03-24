@@ -1,2 +1,6 @@
 # VS Code Settings
 .vscode/
+
+# Build
+mapper
+objs/*
