@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 
 
 	//student code goes here?
-	int *mapping = pcr_lab1(firstGates, couplings, NULL, numPhysicalQubits);
+	int *mapping = pcr_lab1(firstGates, couplings, numLogicalQubits, numPhysicalQubits);
 	if (mapping == NULL)
 	{
 		cout << "No complete initial mapping exists" << endl;
@@ -52,10 +52,9 @@ int main(int argc, char** argv) {
 	else
 	{
 		cout << "Initial mapping exists" << endl;
-		cout << "Logical Qubit : Physical Qubit" << endl;
-		for (int i = 0; i < numPhysicalQubits; i++)
+		for (int i = 0; i < numLogicalQubits; i++)
 		{
-			cout << i << " : " << mapping[i] << endl;
+			cout << i << " " << mapping[i] << endl;
 		}
 	}
 
