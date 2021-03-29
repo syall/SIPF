@@ -18,10 +18,9 @@ echo "Lab 1 Start ============================"
 mkdir -p $results
 
 # For every size category of QASM
-sizelist=(small large)
-for size in $sizelist; do
+for size in ./circuits/*; do
     # For every QASM in the size category
-    for circuitfile in ./circuits/$size/*.qasm; do
+    for circuitfile in $size/*.qasm; do
         # For every Coupling Graph
         for couplingfile in ./couplings/*.txt; do
             # Capture QASM name
