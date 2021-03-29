@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Isrc -O3 -Wall -std=c++11
+CFLAGS = -Isrc -O3 -Wall -std=c++11 -fsanitize=address
 rm = @rm
 mkdir = @mkdir
 exe = mapper
@@ -15,8 +15,8 @@ ifeq ($(OS),Windows_NT)
 	CFLAGS += -D WINDOWS
 	exe = mapper.exe
 else
-	mkdir += -p 
-	rm += -f -r 
+	mkdir += -p
+	rm += -f -r
 endif
 
 default: objs ${exe}

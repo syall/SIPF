@@ -4,6 +4,8 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 using namespace std;
 
 #include "lab1.cpp"
@@ -44,19 +46,18 @@ int main(int argc, char** argv) {
 
 
 	//student code goes here?
-	int *mapping = pcr_lab1(firstGates, couplings, numLogicalQubits, numPhysicalQubits);
-	if (mapping == NULL)
-	{
+	vector<int> mapping = lab1(firstGates, couplings, numLogicalQubits, numPhysicalQubits);
+	if (mapping.empty()) {
 		cout << "No complete initial mapping exists" << endl;
-	}
-	else
-	{
+	} else {
 		cout << "Initial mapping exists" << endl;
-		for (int i = 0; i < numLogicalQubits; i++)
+		for (int logical_qubit = 0; logical_qubit < numLogicalQubits; logical_qubit++)
 		{
-			cout << i << " " << mapping[i] << endl;
+			cout << logical_qubit << " " << mapping[logical_qubit] << endl;
 		}
 	}
+
+	destroyDependencyGraph(firstGates);
 
 	//Exit the program:
 	return 0;
