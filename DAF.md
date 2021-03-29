@@ -56,5 +56,5 @@ Backtrack(q, qDAG, CS, M)
     parents' mapped vertices' neighbors in the candidate set
 - Framework
   - Select extendable candidate u
-  - Map u to each unvisited extandable candidate to produce a partial embedding
+  - Map u to each unvisited extendable candidate to produce a partial embedding
   - Recurse
