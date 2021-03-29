@@ -1,5 +1,7 @@
 # DAF Algorithm
 
+[Presentation: Efficient Subgraph Matching: Harmonizing Dynamic Programming, Adaptive Matching Order, and Failing Set Together](https://av.tib.eu/media/42973)
+
 Input: Query Graph (to embed) q, Data Graph G
 
 Output: All embeddings of q in G
