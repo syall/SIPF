@@ -13,62 +13,62 @@ const int UNDEFINED_QUBIT = -1;
 vector<int>
 lab1(
     set<GateNode *> &frontier,
-    set<pair<int, int> > &couplings,
+    set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits);
 
-static vector<set<int> >
+static vector<set<int>>
 create_query_graph(
     set<GateNode *> &frontier,
     int num_logical_qubits);
 
-static vector<set<int> >
+static vector<set<int>>
 create_data_graph(
-    set<pair<int, int> > &couplings,
+    set<pair<int, int>> &couplings,
     int num_physical_qubits);
 
-static pair<vector<set<int> >, pair<int, vector<set<int> > > >
+static pair<vector<set<int>>, pair<int, vector<set<int>>>>
 create_dag(
-    const vector<set<int> > &query_graph,
-    const vector<set<int> > &data_graph);
+    const vector<set<int>> &query_graph,
+    const vector<set<int>> &data_graph);
 
-static vector<set<int> >
+static vector<set<int>>
 reverse_dag(
-    vector<set<int> > &query_dag);
+    vector<set<int>> &query_dag);
 
-static pair<vector<set<int> >, vector<set<int> > >
+static pair<vector<set<int>>, vector<set<int>>>
 create_candidate_space(
-    vector<set<int> > &query_graph,
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &query_dag,
-    vector<set<int> > &data_graph);
+    vector<set<int>> &query_graph,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &query_dag,
+    vector<set<int>> &data_graph);
 
 static void
 filter_candidates_with_dag(
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &candidate_edges,
-    vector<set<int> > &dag);
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
+    vector<set<int>> &dag);
 
 static vector<int>
 backtrack_candidate_space(
-    vector<set<int> > &query_graph,
-    vector<set<int> > &query_dag,
+    vector<set<int>> &query_graph,
+    vector<set<int>> &query_dag,
     int dag_root,
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &candidate_edges,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
     vector<int> &mapping);
 
 static bool
 backtrack_candidate_space_helper(
-    vector<set<int> > &query_graph,
-    vector<set<int> > &query_dag,
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &candidate_edges,
+    vector<set<int>> &query_graph,
+    vector<set<int>> &query_dag,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
     vector<int> &mapping,
     set<int> &frontier,
     set<int> &seen,
     set<int> &mapped,
-    vector<set<int> > &parents);
+    vector<set<int>> &parents);
 
 void destroyDependencyGraph(set<GateNode *> &firstGates);
 
@@ -83,12 +83,12 @@ void destroyDependencyGraph(set<GateNode *> &firstGates);
 vector<int>
 lab1(
     set<GateNode *> &frontier,
-    set<pair<int, int> > &couplings,
+    set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits)
 {
     // Input: query graph q
-    vector<set<int> > logical_graph = create_query_graph(
+    vector<set<int>> logical_graph = create_query_graph(
         frontier,
         num_logical_qubits);
     /*
@@ -105,7 +105,7 @@ lab1(
     */
 
     // Input: data graph G
-    vector<set<int> > physical_graph = create_data_graph(
+    vector<set<int>> physical_graph = create_data_graph(
         couplings,
         num_physical_qubits);
     /*
@@ -122,12 +122,12 @@ lab1(
     */
 
     // q_D <- BuildDAG(q, G)
-    pair<vector<set<int> >, pair<int, vector<set<int> > > > logical_dag_result = create_dag(
+    pair<vector<set<int>>, pair<int, vector<set<int>>>> logical_dag_result = create_dag(
         logical_graph,
         physical_graph);
-    vector<set<int> > candidate_sets = logical_dag_result.first;
+    vector<set<int>> candidate_sets = logical_dag_result.first;
     int dag_root = logical_dag_result.second.first;
-    vector<set<int> > logical_dag = logical_dag_result.second.second;
+    vector<set<int>> logical_dag = logical_dag_result.second.second;
     /*
     cout << "Logical DAG with root " << dag_root << ":" << endl;
     for (unsigned int q = 0; q < logical_dag.size(); q++)
@@ -142,12 +142,12 @@ lab1(
     */
 
     // CS <- BuildCS(q, q_D, G)
-    pair<vector<set<int> >, vector<set<int> > > candidate_space = create_candidate_space(
+    pair<vector<set<int>>, vector<set<int>>> candidate_space = create_candidate_space(
         logical_graph,
         candidate_sets,
         logical_dag,
         physical_graph);
-    vector<set<int> > candidate_edges = candidate_space.second;
+    vector<set<int>> candidate_edges = candidate_space.second;
     /*
     cout << "Candidate Sets:" << endl;
     for (unsigned int q = 0; q < candidate_sets.size(); q++)
@@ -192,12 +192,12 @@ lab1(
  * @param num_logical_qubits Input: Number of Logical Qubits
  * @returns graph where indices are vertices and values are adjacent vertices
  */
-static vector<set<int> >
+static vector<set<int>>
 create_query_graph(
     set<GateNode *> &frontier,
     int num_logical_qubits)
 {
-    vector<set<int> > logical_graph(num_logical_qubits);
+    vector<set<int>> logical_graph(num_logical_qubits);
 
     // BFS
     queue<GateNode *> search;
@@ -249,12 +249,12 @@ create_query_graph(
  * @param num_physical_qubits Input: Number of Physical Qubits
  * @returns graph where indices are vertices and values are adjacent vertices
  */
-static vector<set<int> >
+static vector<set<int>>
 create_data_graph(
-    set<pair<int, int> > &couplings,
+    set<pair<int, int>> &couplings,
     int num_physical_qubits)
 {
-    vector<set<int> > physical_graph(num_physical_qubits);
+    vector<set<int>> physical_graph(num_physical_qubits);
 
     // Iterate Edges to form Adjacency Lists
     for (auto edge : couplings)
@@ -266,12 +266,12 @@ create_data_graph(
     return physical_graph;
 }
 
-static pair<vector<set<int> >, pair<int, vector<set<int> > > >
+static pair<vector<set<int>>, pair<int, vector<set<int>>>>
 create_dag(
-    const vector<set<int> > &query_graph,
-    const vector<set<int> > &data_graph)
+    const vector<set<int>> &query_graph,
+    const vector<set<int>> &data_graph)
 {
-    vector<set<int> > candidate_sets(query_graph.size());
+    vector<set<int>> candidate_sets(query_graph.size());
 
     pair<int, float> minimum_root(0, numeric_limits<double>::max());
     for (unsigned int root = 0; root < query_graph.size(); root++)
@@ -292,7 +292,7 @@ create_dag(
         }
     }
 
-    vector<set<int> > minimum_root_dag(query_graph.size());
+    vector<set<int>> minimum_root_dag(query_graph.size());
     // BFS
     queue<int> search;
     search.push(minimum_root.first);
@@ -312,16 +312,16 @@ create_dag(
         }
     }
 
-    return pair<vector<set<int> >, pair<int, vector<set<int> > > >(
+    return pair<vector<set<int>>, pair<int, vector<set<int>>>>(
         candidate_sets,
-        pair<int, vector<set<int> > >(minimum_root.first, minimum_root_dag));
+        pair<int, vector<set<int>>>(minimum_root.first, minimum_root_dag));
 }
 
-static vector<set<int> >
+static vector<set<int>>
 reverse_dag(
-    vector<set<int> > &query_dag)
+    vector<set<int>> &query_dag)
 {
-    vector<set<int> > reversed_dag(query_dag.size());
+    vector<set<int>> reversed_dag(query_dag.size());
     for (unsigned int v = 0; v < query_dag.size(); v++)
     {
         for (auto neighbor : query_dag[v])
@@ -332,15 +332,15 @@ reverse_dag(
     return reversed_dag;
 }
 
-static pair<vector<set<int> >, vector<set<int> > >
+static pair<vector<set<int>>, vector<set<int>>>
 create_candidate_space(
-    vector<set<int> > &query_graph,
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &query_dag,
-    vector<set<int> > &data_graph)
+    vector<set<int>> &query_graph,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &query_dag,
+    vector<set<int>> &data_graph)
 {
     // Candidate Space = Sets(query -> set<data>), Edges(data -> set<data>)
-    vector<set<int> > candidate_edges(data_graph.size());
+    vector<set<int>> candidate_edges(data_graph.size());
     for (unsigned int u1 = 0; u1 < candidate_sets.size(); u1++)
     {
         for (unsigned int u2 = 0; u2 < candidate_sets.size(); u2++)
@@ -367,7 +367,7 @@ create_candidate_space(
     }
 
     // q_D^-1
-    vector<set<int> > reversed_query_dag = reverse_dag(query_dag);
+    vector<set<int>> reversed_query_dag = reverse_dag(query_dag);
 
     // Filter with q_D^-1
     filter_candidates_with_dag(candidate_sets, candidate_edges, reversed_query_dag);
@@ -378,14 +378,14 @@ create_candidate_space(
     // Filter with q_D^-1
     filter_candidates_with_dag(candidate_sets, candidate_edges, reversed_query_dag);
 
-    return pair<vector<set<int> >, vector<set<int> > >(candidate_sets, candidate_edges);
+    return pair<vector<set<int>>, vector<set<int>>>(candidate_sets, candidate_edges);
 }
 
 static void
 filter_candidates_with_dag(
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &candidate_edges,
-    vector<set<int> > &dag)
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
+    vector<set<int>> &dag)
 {
     for (unsigned int v = 0; v < dag.size(); v++)
     {
@@ -417,17 +417,17 @@ filter_candidates_with_dag(
 
 static vector<int>
 backtrack_candidate_space(
-    vector<set<int> > &query_graph,
-    vector<set<int> > &query_dag,
+    vector<set<int>> &query_graph,
+    vector<set<int>> &query_dag,
     int dag_root,
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &candidate_edges,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
     vector<int> &mapping)
 {
     set<int> frontier{dag_root};
     set<int> seen;
     set<int> mapped;
-    vector<set<int> > parents(query_dag.size());
+    vector<set<int>> parents(query_dag.size());
     for (unsigned int v = 0; v < query_dag.size(); v++)
     {
         for (int neighbor : query_dag[v])
@@ -455,15 +455,15 @@ backtrack_candidate_space(
 
 static bool
 backtrack_candidate_space_helper(
-    vector<set<int> > &query_graph,
-    vector<set<int> > &query_dag,
-    vector<set<int> > &candidate_sets,
-    vector<set<int> > &candidate_edges,
+    vector<set<int>> &query_graph,
+    vector<set<int>> &query_dag,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
     vector<int> &mapping,
     set<int> &frontier,
     set<int> &seen,
     set<int> &mapped,
-    vector<set<int> > &parents)
+    vector<set<int>> &parents)
 {
     // Base Case
     if (frontier.empty())
