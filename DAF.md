@@ -1,6 +1,9 @@
 # DAF Algorithm
 
-[Presentation: Efficient Subgraph Matching: Harmonizing Dynamic Programming, Adaptive Matching Order, and Failing Set Together](https://av.tib.eu/media/42973)
+Efficient Subgraph Matching: Harmonizing Dynamic Programming, Adaptive Matching Order, and Failing Set Together by Han et al. SIGMOD'19:
+
+- [Paper](https://dl.acm.org/doi/10.1145/3299869.3319880)
+- [Presentation](https://av.tib.eu/media/42973)
 
 Input: Query Graph (to embed) q, Data Graph G
 
