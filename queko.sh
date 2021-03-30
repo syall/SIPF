@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Output Directory
-results=queko/
-
 # QUEKO Directory
 quekodir="QUEKO-benchmark/"
 
@@ -20,11 +17,6 @@ checkregex="Initial mapping exists"
 
 # Hide excessive trap messages
 trap "" SIGABRT
-
-echo "Lab 1 Queko ============================"
-
-# Make Output Directory
-mkdir -p $results
 
 # For every size category of QASM
 for size in $quekolist; do
@@ -61,5 +53,3 @@ for size in $quekolist; do
         fi
     done
 done
-
-echo "Lab 1 Queko ============================"
