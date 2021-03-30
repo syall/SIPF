@@ -78,7 +78,7 @@ If a logical qubit is mapped to a physical qubit `-1`, it means that the logical
 The `lab1.sh` script runs `mapper` on every circuit and coupling graph combination between `circuits/` and `couplings/` from the Sakai assignment files.
 
 - For each combination, a line will denote which combination is running, and if there isn't a mapping, an error message will be printed.
-- The program output for each combination is outputted to files in `lab1/` that are named with the format `circuit on coupling.txt`.
+- The program output for each combination is outputted to files in `lab1/` that are named with the format `circuit--coupling.txt`.
 
 `mapper` is able to find a mapping for:
 
@@ -127,6 +127,6 @@ The `lab1-queko.sh` script runs `mapper` on every circuit in the `QUEKO-benchmar
 
 - Make sure to have pulled in the `QUEKO-benchmark` repository with `git submodule update --init --recursive`.
 - For each combination, a line will denote which combination is running, and if there isn't a mapping, an error message will be printed.
-- The program output for each combination is outputted to files in `lab1/` that are named with the format `circuit on coupling.txt`.
+- The program output for each combination is outputted to files in `lab1/` that are named with the format `circuit--coupling.txt`.
 
 `mapper` is able to find a mapping for every combination in the `QUEKO-benchmark` repository.
