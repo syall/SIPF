@@ -370,13 +370,13 @@ create_candidate_space(
     vector<set<int>> reversed_query_dag = reverse_dag(query_dag);
 
     // Filter with q_D^-1
-    filter_candidates_with_dag(candidate_sets, candidate_edges, reversed_query_dag);
+    // filter_candidates_with_dag(candidate_sets, candidate_edges, reversed_query_dag);
 
     // Filter with q_D
-    filter_candidates_with_dag(candidate_sets, candidate_edges, query_dag);
+    // filter_candidates_with_dag(candidate_sets, candidate_edges, query_dag);
 
     // Filter with q_D^-1
-    filter_candidates_with_dag(candidate_sets, candidate_edges, reversed_query_dag);
+    // filter_candidates_with_dag(candidate_sets, candidate_edges, reversed_query_dag);
 
     return pair<vector<set<int>>, vector<set<int>>>(candidate_sets, candidate_edges);
 }
