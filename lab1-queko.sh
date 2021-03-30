@@ -1,16 +1,16 @@
 #!/bin/bash
 
+# Output Directory
+output="lab1-queko/"
+
 # QUEKO Directory
 quekodir="QUEKO-benchmark/"
 
 # QUEKO Circuit Size List
-quekolist=($quekodir/BIGD $quekodir/BNTF $quekodir/BSS)
+quekolist=("$quekodir/BIGD" "$quekodir/BNTF" "$quekodir/BSS")
 
 # QUEKO-benchmark/*/(*).qasm Capture Regex
 qasmregex="$quekodir/.*/(.*)QBT_(.*).qasm"
-
-# Ceck Abort Regex
-abortregex="mapper:"
 
 # Check Initial Mapping Exists Regex
 checkregex="Initial mapping exists"
@@ -18,8 +18,11 @@ checkregex="Initial mapping exists"
 # Hide excessive trap messages
 trap "" SIGABRT
 
+# Make Output Directory
+mkdir -p $output
+
 # For every size category of QASM
-for size in $quekolist; do
+for size in ${quekolist[@]}; do
     # For every QASM in the size category
     for circuitfile in $size/*.qasm; do
         # Capture QASM name
@@ -43,13 +46,11 @@ for size in $quekolist; do
             continue
         fi
         # Run mapper on QASM and Coupling Graph to Output File
-        OUTPUT=$(./mapper $circuitfile $couplingfile 2>&1)
-        if [[ $OUTPUT =~ $abortregex ]]
+        echo Testing "$circuitarch"QBT_"$circuitname" on $couplingname
+        OUTPUT=$(./mapper $circuitfile $couplingfile 2>&1 | tee $output/"$circuitarch"QBT_"$circuitname"--$couplingname.txt)
+        if [[ ! $OUTPUT =~ $checkregex ]]
         then
-            echo "$circuitarch"QBT_"$circuitname".qasm on $couplingname.txt assert doesn\'t match
-        elif [[ ! $OUTPUT =~ $checkregex ]]
-        then
-            echo "$circuitarch"QBT_"$circuitname".qasm on $couplingname.txt mapping doesn\'t match
+            echo $circuitfile on $couplingfile mapping doesn\'t match
         fi
     done
 done
