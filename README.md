@@ -46,7 +46,7 @@ M    <- Backtrack recursively in the CS using q, qDAG, CS, M
 
 ### Usage
 
-To pull in the `QUEKO-benchmark` repository, run `git pull  on recurse-submodules`.
+To pull in the `QUEKO-benchmark` repository, run `git submodule update --init --recursive`.
 
 Run `make` (or `make debug` for debug symbols) to produce the `mapper` executable.
 
@@ -125,7 +125,7 @@ The `lab1.sh` script runs `mapper` on every circuit and coupling graph combinati
 
 The `lab1-queko.sh` script runs `mapper` on every circuit in the `QUEKO-benchmark` repository that has a coupling graph available from the Sakai assignment files (`aspen4.txt` for `16QBT` prefix , `tokyo.txt` for `20QBT` prefix).
 
-- Make sure to have pulled in the `QUEKO-benchmark` repository with `git pull  on recurse-submodules`.
+- Make sure to have pulled in the `QUEKO-benchmark` repository with `git submodule update --init --recursive`.
 - For each combination, a line will denote which combination is running, and if there isn't a mapping, an error message will be printed.
 - The program output for each combination is outputted to files in `lab1/` that are named with the format `circuit on coupling.txt`.
 
