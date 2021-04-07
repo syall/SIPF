@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Output Directory
-results=lab1/
+output=lab1/
 
 # circuit/*/(*).qasm Capture Regex
 qasmregex="./circuits/.*/(.*).qasm"
@@ -9,13 +9,14 @@ qasmregex="./circuits/.*/(.*).qasm"
 # couplings/(*).txt Capture Regex
 txtregex="./couplings/(.*).txt"
 
+# Check Initial Mapping Exists Regex
+checkregex="Initial mapping exists"
+
 # Hide excessive trap messages
 trap "" SIGABRT
 
-echo "Lab 1 Start ============================"
-
 # Make Output Directory
-mkdir -p $results
+mkdir -p $output
 
 # For every size category of QASM
 for size in ./circuits/*; do
@@ -40,11 +41,11 @@ for size in ./circuits/*; do
             # Output to stdout
             echo "Testing $circuitname on $couplingname"
             # Run mapper on QASM and Coupling Graph to Output File
-            ./mapper $circuitfile $couplingfile > \
-                     $"$results/$circuitname--$couplingname.txt" \
-                     2>&1
+            OUTPUT=$(./mapper $circuitfile $couplingfile 2>&1 | tee $output/$circuitname--$couplingname.txt)
+            if [[ ! $OUTPUT =~ $checkregex ]]
+            then
+                echo $circuitfile on $couplingfile mapping doesn\'t match
+            fi
         done
     done
 done
-
-echo "Lab 1 Done ============================="

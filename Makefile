@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Isrc -O3 -Wall -std=c++11 -fsanitize=address
+CFLAGS = -Isrc -O3 -Wall -std=c++11
 rm = @rm
 mkdir = @mkdir
 exe = mapper
@@ -21,7 +21,7 @@ endif
 
 default: objs ${exe}
 
-debug: CFLAGS += -g -O0
+debug: CFLAGS += -g -O0  -fsanitize=address
 debug: default
 prof: CFLAGS += -pg -fno-inline
 prof: default

@@ -1,0 +1,3 @@
+[submodule "QUEKO-benchmark"]
+	path = QUEKO-benchmark
+	url = git@github.com:tbcdebug/QUEKO-benchmark.git
