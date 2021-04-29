@@ -48,13 +48,17 @@ int main(int argc, char** argv) {
 	//student code goes here?
 	vector<int> mapping = lab1(firstGates, couplings, numLogicalQubits, numPhysicalQubits);
 	if (mapping.empty()) {
-		cout << "No complete initial mapping exists" << endl;
+		cout << "no" << endl;
 	} else {
-		cout << "Initial mapping exists" << endl;
+		cout << "//Location of qubits: ";
 		for (int logical_qubit = 0; logical_qubit < numLogicalQubits; logical_qubit++)
 		{
-			cout << logical_qubit << " " << mapping[logical_qubit] << endl;
+			cout << mapping[logical_qubit];
+			if (logical_qubit != numLogicalQubits - 1) {
+				cout << ",";
+			}
 		}
+		cout << endl;
 	}
 
 	destroyDependencyGraph(firstGates);

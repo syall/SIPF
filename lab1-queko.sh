@@ -13,7 +13,7 @@ quekolist=("$quekodir/BIGD" "$quekodir/BNTF" "$quekodir/BSS")
 qasmregex="$quekodir/.*/(.*)QBT_(.*).qasm"
 
 # Check Initial Mapping Exists Regex
-checkregex="Initial mapping exists"
+checkregex="no"
 
 # Hide excessive trap messages
 trap "" SIGABRT
@@ -48,7 +48,7 @@ for size in ${quekolist[@]}; do
         # Run mapper on QASM and Coupling Graph to Output File
         echo Testing "$circuitarch"QBT_"$circuitname" on $couplingname
         OUTPUT=$(./mapper $circuitfile $couplingfile 2>&1 | tee $output/"$circuitarch"QBT_"$circuitname"--$couplingname.txt)
-        if [[ ! $OUTPUT =~ $checkregex ]]
+        if [[ $OUTPUT =~ $checkregex ]]
         then
             echo $circuitfile on $couplingfile mapping doesn\'t match
         fi
