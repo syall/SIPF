@@ -51,7 +51,6 @@ filter_candidates_with_dag(
 
 static vector<int>
 backtrack_candidate_space(
-    vector<set<int>> &query_graph,
     vector<set<int>> &query_dag,
     int dag_root,
     vector<set<int>> &candidate_sets,
@@ -60,7 +59,6 @@ backtrack_candidate_space(
 
 static bool
 backtrack_candidate_space_helper(
-    vector<set<int>> &query_graph,
     vector<set<int>> &query_dag,
     vector<set<int>> &candidate_sets,
     vector<set<int>> &candidate_edges,
@@ -176,7 +174,6 @@ lab1(
 
     // Backtrack(q, q_D, CS, M)
     backtrack_candidate_space(
-        logical_graph,
         logical_dag,
         dag_root,
         candidate_sets,
@@ -417,7 +414,6 @@ filter_candidates_with_dag(
 
 static vector<int>
 backtrack_candidate_space(
-    vector<set<int>> &query_graph,
     vector<set<int>> &query_dag,
     int dag_root,
     vector<set<int>> &candidate_sets,
@@ -437,7 +433,6 @@ backtrack_candidate_space(
     }
 
     if (!backtrack_candidate_space_helper(
-            query_graph,
             query_dag,
             candidate_sets,
             candidate_edges,
@@ -455,7 +450,6 @@ backtrack_candidate_space(
 
 static bool
 backtrack_candidate_space_helper(
-    vector<set<int>> &query_graph,
     vector<set<int>> &query_dag,
     vector<set<int>> &candidate_sets,
     vector<set<int>> &candidate_edges,
@@ -503,7 +497,6 @@ backtrack_candidate_space_helper(
                 new_mapped.insert(candidate);
 
                 if (backtrack_candidate_space_helper(
-                        query_graph,
                         query_dag,
                         candidate_sets,
                         candidate_edges,
@@ -584,7 +577,6 @@ backtrack_candidate_space_helper(
                 new_mapped.insert(candidate);
 
                 if (backtrack_candidate_space_helper(
-                        query_graph,
                         query_dag,
                         candidate_sets,
                         candidate_edges,
