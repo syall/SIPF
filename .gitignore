@@ -7,5 +7,5 @@ objs/*
 *.dSYM/
 
 # Output
-lab1/
-lab1-queko/
+lab1*/
+lab1-queko*/
