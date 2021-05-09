@@ -10,7 +10,7 @@ qasmregex="./circuits/.*/(.*).qasm"
 txtregex="./couplings/(.*).txt"
 
 # Check Initial Mapping Exists Regex
-checkregex="Initial mapping exists"
+checkregex="no"
 
 # Hide excessive trap messages
 trap "" SIGABRT
@@ -42,7 +42,7 @@ for size in ./circuits/*; do
             echo "Testing $circuitname on $couplingname"
             # Run mapper on QASM and Coupling Graph to Output File
             OUTPUT=$(./mapper $circuitfile $couplingfile 2>&1 | tee $output/$circuitname--$couplingname.txt)
-            if [[ ! $OUTPUT =~ $checkregex ]]
+            if [[ $OUTPUT =~ $checkregex ]]
             then
                 echo $circuitfile on $couplingfile mapping doesn\'t match
             fi
