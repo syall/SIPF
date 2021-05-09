@@ -27,7 +27,8 @@ create_data_graph(
     set<pair<int, int>> &couplings,
     int num_physical_qubits);
 
-static pair<vector<set<int>>, pair<int, vector<set<int>>>>
+// static pair<vector<set<int>>, pair<int, vector<set<int>>>>
+static pair<vector<set<int>>, vector<pair<int, vector<set<int>>>>>
 create_dag(
     const vector<set<int>> &query_graph,
     const vector<set<int>> &data_graph);
@@ -120,12 +121,31 @@ lab1(
     */
 
     // q_D <- BuildDAG(q, G)
-    pair<vector<set<int>>, pair<int, vector<set<int>>>> logical_dag_result = create_dag(
+    // pair<vector<set<int>>, pair<int, vector<set<int>>>> logical_dag_result = create_dag(
+    pair<vector<set<int>>, vector<pair<int, vector<set<int>>>>> logical_dag_result = create_dag(
         logical_graph,
         physical_graph);
     vector<set<int>> candidate_sets = logical_dag_result.first;
-    int dag_root = logical_dag_result.second.first;
-    vector<set<int>> logical_dag = logical_dag_result.second.second;
+    // int dag_root = logical_dag_result.second.first;
+    // vector<set<int>> logical_dag = logical_dag_result.second.second;
+    vector<pair<int, vector<set<int>>>> logical_dags = logical_dag_result.second;
+    // /*
+    for (unsigned int dag_index = 0; dag_index < logical_dags.size(); dag_index++)
+    {
+        int dag_root = logical_dag_result.second[dag_index].first;
+        vector<set<int>> logical_dag = logical_dag_result.second[dag_index].second;
+        cout << "Logical DAG with root " << dag_root << ":" << endl;
+        for (unsigned int q = 0; q < logical_dag.size(); q++)
+        {
+            cout << q << ":";
+            for (int neighbor : logical_dag[q])
+            {
+                cout << " " << neighbor;
+            }
+            cout << endl;
+        }
+    }
+    // */
     /*
     cout << "Logical DAG with root " << dag_root << ":" << endl;
     for (unsigned int q = 0; q < logical_dag.size(); q++)
@@ -140,12 +160,12 @@ lab1(
     */
 
     // CS <- BuildCS(q, q_D, G)
-    pair<vector<set<int>>, vector<set<int>>> candidate_space = create_candidate_space(
-        logical_graph,
-        candidate_sets,
-        logical_dag,
-        physical_graph);
-    vector<set<int>> candidate_edges = candidate_space.second;
+    // pair<vector<set<int>>, vector<set<int>>> candidate_space = create_candidate_space(
+    //     logical_graph,
+    //     candidate_sets,
+    //     logical_dag,
+    //     physical_graph);
+    // vector<set<int>> candidate_edges = candidate_space.second;
     /*
     cout << "Candidate Sets:" << endl;
     for (unsigned int q = 0; q < candidate_sets.size(); q++)
@@ -173,12 +193,12 @@ lab1(
     vector<int> mapping(num_logical_qubits, UNDEFINED_QUBIT);
 
     // Backtrack(q, q_D, CS, M)
-    backtrack_candidate_space(
-        logical_dag,
-        dag_root,
-        candidate_sets,
-        candidate_edges,
-        mapping);
+    // backtrack_candidate_space(
+    //     logical_dag,
+    //     dag_root,
+    //     candidate_sets,
+    //     candidate_edges,
+    //     mapping);
 
     return mapping;
 }
@@ -263,14 +283,15 @@ create_data_graph(
     return physical_graph;
 }
 
-static pair<vector<set<int>>, pair<int, vector<set<int>>>>
+// static pair<vector<set<int>>, pair<int, vector<set<int>>>>
+static pair<vector<set<int>>, vector<pair<int, vector<set<int>>>>>
 create_dag(
     const vector<set<int>> &query_graph,
     const vector<set<int>> &data_graph)
 {
     vector<set<int>> candidate_sets(query_graph.size());
+    vector<pair<int, float>> heuristics(query_graph.size());
 
-    pair<int, float> minimum_root(0, numeric_limits<double>::max());
     for (unsigned int root = 0; root < query_graph.size(); root++)
     {
         unsigned int root_degree = query_graph[root].size();
@@ -282,36 +303,100 @@ create_dag(
             }
         }
         double heuristic = (double)candidate_sets[root].size() / (double)root_degree;
-        if (heuristic < minimum_root.second)
-        {
-            minimum_root.first = root;
-            minimum_root.second = heuristic;
-        }
+        heuristics[root] = pair<int, float>(root, heuristic);
     }
 
-    vector<set<int>> minimum_root_dag(query_graph.size());
-    // BFS
-    queue<int> search;
-    search.push(minimum_root.first);
+    sort(heuristics.begin(), heuristics.end(), [](pair<int, float> a, pair<int, float> b){
+        return a.second < b.second;
+    });
+
+    // pair<int, float> minimum_root(0, numeric_limits<double>::max());
+    // for (unsigned int root = 0; root < query_graph.size(); root++)
+    // {
+    //     unsigned int root_degree = query_graph[root].size();
+    //     for (unsigned int v = 0; v < data_graph.size(); v++)
+    //     {
+    //         if (data_graph[v].size() >= root_degree)
+    //         {
+    //             candidate_sets[root].insert(v);
+    //         }
+    //     }
+    //     double heuristic = (double)candidate_sets[root].size() / (double)root_degree;
+    //     if (heuristic < minimum_root.second)
+    //     {
+    //         minimum_root.first = root;
+    //         minimum_root.second = heuristic;
+    //     }
+    // }
+
+    vector<pair<int, vector<set<int>>>> minimum_root_dags;
+
+    // set<pair<int, vector<set<int>>>> seen;
     set<int> seen;
-    while (!search.empty())
+    unsigned int last_searched = 0;
+
+    while (seen.size() != query_graph.size())
     {
-        int current = search.front();
-        search.pop();
-        seen.insert(current);
-        for (int neighbor : query_graph[current])
+        vector<set<int>> minimum_root_dag(query_graph.size());
+
+        // BFS
+        queue<int> search;
+        int minimum_root = 0;
+        for (; last_searched < heuristics.size(); last_searched++)
         {
-            if (seen.find(neighbor) == seen.end())
+            if (seen.find(heuristics[last_searched].first) == seen.end())
             {
-                minimum_root_dag[current].insert(neighbor);
-                search.push(neighbor);
+                minimum_root = heuristics[last_searched].first;
+                search.push(minimum_root);
+                break;
             }
         }
+
+        while (!search.empty())
+        {
+            int current = search.front();
+            search.pop();
+            seen.insert(current);
+            for (int neighbor : query_graph[current])
+            {
+                if (seen.find(neighbor) == seen.end())
+                {
+                    minimum_root_dag[current].insert(neighbor);
+                    search.push(neighbor);
+                }
+            }
+        }
+
+        minimum_root_dags.push_back(pair<int, vector<set<int>>>(minimum_root, minimum_root_dag));
     }
 
-    return pair<vector<set<int>>, pair<int, vector<set<int>>>>(
+    return pair<vector<set<int>>, vector<pair<int, vector<set<int>>>>>(
         candidate_sets,
-        pair<int, vector<set<int>>>(minimum_root.first, minimum_root_dag));
+        minimum_root_dags);
+
+    // vector<set<int>> minimum_root_dag(query_graph.size());
+    // // BFS
+    // queue<int> search;
+    // search.push(minimum_root.first);
+    // set<int> seen;
+    // while (!search.empty())
+    // {
+    //     int current = search.front();
+    //     search.pop();
+    //     seen.insert(current);
+    //     for (int neighbor : query_graph[current])
+    //     {
+    //         if (seen.find(neighbor) == seen.end())
+    //         {
+    //             minimum_root_dag[current].insert(neighbor);
+    //             search.push(neighbor);
+    //         }
+    //     }
+    // }
+
+    // return pair<vector<set<int>>, pair<int, vector<set<int>>>>(
+    //     candidate_sets,
+    //     pair<int, vector<set<int>>>(minimum_root.first, minimum_root_dag));
 }
 
 static vector<set<int>>
