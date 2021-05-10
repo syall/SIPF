@@ -20,7 +20,7 @@ sipf(
 
 static vector<vector<set<int>>>
 create_query_graphs(
-    set<GateNode *> &frontier,
+    vector<GateNode*> gates_circuit,
     int num_logical_qubits);
 
 static vector<set<int>>
@@ -83,71 +83,88 @@ sipf(
     vector<vector<int>> live_ranges,
     vector<GateNode*> gates_circuit)
 {
-    // Input: query graphs
-    vector<vector<set<int>>> logical_islands = create_query_graphs(
-        frontier,
-        num_logical_qubits);
-    /*
-    for (unsigned int i = 0; i < logical_islands.size(); i++)
+    int max_bound = gates_circuit.size();
+    int lower_bound = 0;
+    int upper_bound = max_bound;
+    vector<vector<int>> mappings;
+    vector<set<int>> failure_heuristic(num_logical_qubits);
+
+    while (lower_bound < max_bound)
     {
-        cout << "Logical Island:" << endl;
-        vector<set<int>> logical_island = logical_islands[i];
-        for (unsigned int q = 0; q < logical_island.size(); q++)
+
+        vector<GateNode*> sub_circuit = {
+            gates_circuit.begin() + lower_bound,
+            gates_circuit.begin() + upper_bound
+        };
+        // cout << sub_circuit.size() << endl;
+
+        // Input: query graphs
+        vector<vector<set<int>>> logical_islands = create_query_graphs(
+            sub_circuit,
+            num_logical_qubits);
+        /*
+        for (unsigned int i = 0; i < logical_islands.size(); i++)
         {
-            cout << q << ":";
-            for (int neighbor : logical_island[q])
+            cout << "Logical Island:" << endl;
+            vector<set<int>> logical_island = logical_islands[i];
+            for (unsigned int q = 0; q < logical_island.size(); q++)
             {
-                cout << " " << neighbor;
+                cout << q << ":";
+                for (int neighbor : logical_island[q])
+                {
+                    cout << " " << neighbor;
+                }
+                cout << endl;
+            }
+        }
+        */
+
+        set<int> seen;
+        set<int> mapped;
+        // M <- EMPTY
+        vector<int> mapping(num_logical_qubits, UNDEFINED_QUBIT);
+        vector<vector<int>> conflicts(num_logical_qubits);
+        if (backtrack_level(
+            logical_islands,
+            couplings,
+            mapping,
+            seen,
+            mapped,
+            num_physical_qubits))
+        {
+            /*
+            cout << "//Location of qubits: ";
+            for (unsigned int logical_qubit = 0; logical_qubit < num_logical_qubits; logical_qubit++)
+            {
+                cout << mapping[logical_qubit];
+                if (logical_qubit != num_logical_qubits - 1) {
+                    cout << ",";
+                }
             }
             cout << endl;
-        }
-    }
-    */
-
-    // M <- EMPTY
-    vector<vector<int>> mappings;
-    set<int> seen;
-    set<int> mapped;
-    vector<int> mapping(num_logical_qubits, UNDEFINED_QUBIT);
-    if (backtrack_level(
-        logical_islands,
-        couplings,
-        mapping,
-        seen,
-        mapped,
-        num_physical_qubits))
-    {
-        /*
-        cout << "//Location of qubits: ";
-        for (unsigned int logical_qubit = 0; logical_qubit < num_logical_qubits; logical_qubit++)
-        {
-            cout << mapping[logical_qubit];
-            if (logical_qubit != num_logical_qubits - 1) {
-                cout << ",";
+            cout << "Seen Logical Qubits:";
+            for(auto v : seen) {
+                cout << " " << v;
             }
+            cout << endl;
+            cout << "Mapped Physical Qubits:";
+            for(auto v : mapped) {
+                cout << " " << v;
+            }
+            cout << endl;
+            */
+            mappings.push_back(mapping);
+            lower_bound = upper_bound;
+            upper_bound = max_bound;
         }
-        cout << endl;
-        cout << "Seen Logical Qubits:";
-        for(auto v : seen) {
-            cout << " " << v;
+        else
+        {
+            // cout << "no" << endl;
+            // cout << mapping.size() << endl;
         }
-        cout << endl;
-        cout << "Mapped Physical Qubits:";
-        for(auto v : mapped) {
-            cout << " " << v;
-        }
-        cout << endl;
-        */
-    }
-    else
-    {
-        // cout << "no" << endl;
-        // cout << mapping.size() << endl;
-        mapping.clear();
     }
 
-    return pair<vector<int>, string>(mapping, "");
-
+    return pair<vector<int>, string>(mappings[0], "");
 }
 
 /**
@@ -158,53 +175,40 @@ sipf(
  */
 static vector<vector<set<int>>>
 create_query_graphs(
-    set<GateNode *> &frontier,
+    vector<GateNode*> gates_circuit,
     int num_logical_qubits)
 {
     vector<set<int>> logical_graph(num_logical_qubits);
 
-    // BFS all Relations
+    // Iterate Gates
     {
-        queue<GateNode *> search;
-        set<GateNode *> seen;
-        for (auto gate : frontier)
+        for (GateNode* current : gates_circuit)
         {
-            search.push(gate);
-            seen.insert(gate);
-        }
-        while (!search.empty())
-        {
-            GateNode *current = search.front();
-            search.pop();
-
-            // Search on Gate
+            cout << current->control << " " << current->target << endl;
             // If Gate is target only
             if (current->control == UNDEFINED_QUBIT)
             {
                 logical_graph[current->target].insert(current->target);
-                if (current->targetChild != NULL && seen.find(current->targetChild) == seen.end())
-                {
-                    seen.insert(current->targetChild);
-                    search.push(current->targetChild);
-                }
             }
             // If Gate is target and control
             else
             {
                 logical_graph[current->target].insert(current->control);
                 logical_graph[current->control].insert(current->target);
-                if (current->targetChild != NULL && seen.find(current->targetChild) == seen.end())
-                {
-                    seen.insert(current->targetChild);
-                    search.push(current->targetChild);
-                }
-                if (current->controlChild != NULL && seen.find(current->controlChild) == seen.end())
-                {
-                    seen.insert(current->controlChild);
-                    search.push(current->controlChild);
-                }
             }
         }
+        /*
+        cout << "Logical Graph" << endl;
+        for (int i = 0; i < num_logical_qubits; i++)
+        {
+            cout << i << ":";
+            for (int neighbor : logical_graph[i])
+            {
+                cout << " " << neighbor;
+            }
+            cout << endl;
+        }
+        */
     }
 
     vector<vector<set<int>>> logical_islands;
