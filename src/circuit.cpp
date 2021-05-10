@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <utility>
 using namespace std;
 
 /**
@@ -88,17 +89,24 @@ pair<vector<vector<int>>, vector<GateNode*>> preprocess_circuit(string qasmFileN
 			firstGates.insert(v);
 		}
 
-        //if gate is double, then add live range
-		if (v->control != UNDEFINED_QUBIT)
+		// Resize live rangess to be larger if numQubits is increased
+		if (live_ranges.size() < numQubits * numQubits)
+		{
+			live_ranges.resize(numQubits * numQubits);
+		}
+
+		//if gate is single
+		if (v->control == UNDEFINED_QUBIT)
         {
-			if (live_ranges.size() < numQubits * numQubits)
-			{
-				live_ranges.resize(numQubits * numQubits);
-			}
+			live_ranges[v->target * numQubits + v->target].push_back((int)x);
+        }
+        //if gate is double
+		else
+		{
 			// 2D Matrix Access: Row * Number of Qubits + Col
 			live_ranges[v->control * numQubits + v->target].push_back((int)x);
 			live_ranges[v->target * numQubits + v->control].push_back((int)x);
-        }
+		}
 
 		// Add gate to gates_circuit
 		gates_circuit.push_back(v);
@@ -112,20 +120,20 @@ pair<vector<vector<int>>, vector<GateNode*>> preprocess_circuit(string qasmFileN
 	return pair<vector<vector<int>>, vector<GateNode*>>(live_ranges, gates_circuit);
 }
 
-int latest_intersection(vector<vector<int>> live_ranges, pair<int, int> qubits, pair<int, int> range, int numQubits)
+int earliest_intersection(vector<vector<int>> live_ranges, pair<int, int> qubits, pair<int, int> range, int numQubits)
 {
 	vector<int> live_range_entries = live_ranges[qubits.first * numQubits + qubits.second];
 
 	int lower_bound = range.first;
 	int upper_bound = range.second;
 
-	for (int i = live_range_entries.size() - 1; i >= 0; i--)
+	for (unsigned int i = 0; i < live_range_entries.size(); i++)
 	{
-		if (live_range_entries[i] >= upper_bound)
+		if (live_range_entries[i] < lower_bound)
 		{
 			continue;
 		}
-		if (live_range_entries[i] < upper_bound && live_range_entries[i] >= lower_bound)
+		if (live_range_entries[i] >= lower_bound && live_range_entries[i] < upper_bound)
 		{
 			return live_range_entries[i];
 		}
