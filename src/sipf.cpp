@@ -255,7 +255,7 @@ create_query_graphs(
 
     }
 
-    // Sort Islands by Size
+    // Sort Islands by Size Decreasing
     sort(logical_islands.begin(), logical_islands.end(), [](vector<set<int>>a, vector<set<int>> b){
         int a_size = 0;
         int b_size = 0;
@@ -264,7 +264,7 @@ create_query_graphs(
             a_size += a[i].size();
             b_size += b[i].size();
         }
-        return a_size < b_size;
+        return a_size > b_size;
     });
 
     return logical_islands;
