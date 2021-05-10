@@ -8,7 +8,10 @@
 #include <algorithm>
 using namespace std;
 
-#include "lab1.cpp"
+const int UNDEFINED_QUBIT = -1;
+
+#include "circuit.cpp"
+#include "sipf.cpp"
 
 int main(int argc, char** argv) {
 	char * qasmFileName = NULL;
@@ -36,7 +39,26 @@ int main(int argc, char** argv) {
 	set<GateNode*> firstGates;
 	int numLogicalQubits = -1;
 	int numGates = -1;
-	buildDependencyGraph(qasmFileName, firstGates, numLogicalQubits, numGates);
+	pair<vector<vector<int>>, vector<GateNode*>> preprocessed =
+		preprocess_circuit(qasmFileName, firstGates, numLogicalQubits, numGates);
+	vector<vector<int>> live_ranges = preprocessed.first;
+	/*
+	for (unsigned int q1 = 0; q1 < numLogicalQubits; q1++)
+	{
+		for (unsigned int q2 = 0; q2 < numLogicalQubits; q2++)
+		{
+			cout << "Gates between " << q1 << " and " << q2 << ":";
+			for (auto iter = live_ranges[q1 * numLogicalQubits + q2].begin();
+				 iter != live_ranges[q1 * numLogicalQubits + q2].end();
+				 iter++)
+			{
+				cout << " " << *iter;
+			}
+			cout << endl;
+		}
+	}
+	*/
+	vector<GateNode*> gates_circuit = preprocessed.second;
 
 	//Parse the coupling map; put edges into a set
 	int numPhysicalQubits = 0;
@@ -44,12 +66,16 @@ int main(int argc, char** argv) {
 	buildCouplingMap(couplingMapFileName, couplings, numPhysicalQubits);
 	assert(numPhysicalQubits >= numLogicalQubits);
 
-
 	//student code goes here?
-	vector<int> mapping = lab1(firstGates, couplings, numLogicalQubits, numPhysicalQubits);
-	if (mapping.empty()) {
+	pair<vector<int>, string> output = sipf(firstGates, couplings, numLogicalQubits, numPhysicalQubits, live_ranges, gates_circuit);
+	vector<int> mapping = output.first;
+	string circuit = output.second;
+	if (mapping.empty())
+	{
 		cout << "no" << endl;
-	} else {
+	}
+	else
+	{
 		cout << "//Location of qubits: ";
 		for (int logical_qubit = 0; logical_qubit < numLogicalQubits; logical_qubit++)
 		{
