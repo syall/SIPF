@@ -11,7 +11,6 @@ using namespace std;
 
 vector<pair<pair<int, int>, vector<int>>>
 sipf(
-    set<GateNode *> &frontier,
     set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits,
@@ -68,17 +67,8 @@ backtrack_level_helper(
     int previous,
     pair<unsigned int, vector<set<int>>> &failure_heuristic);
 
-/**
- * Partitioning of Control Relations (PCR)
- * @param frontier Input: Set of Next Candidates
- * @param couplings Input: Coupling Graph
- * @param num_logical_qubits Input: Number of Logical Qubits to be mapped
- * @param num_physical_qubits Input: Maximum number of Physical Qubits to be mapped
- * @return mappings with ranges
- */
 vector<pair<pair<int, int>, vector<int>>>
 sipf(
-    set<GateNode *> &frontier,
     set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits,
