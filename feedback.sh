@@ -42,10 +42,10 @@ for size in ./feedback_circuits/circuits/*; do
             # Output to stdout
             echo "Testing $circuitname on $couplingname" | tee -a $record
             # Run mapper on QASM and Coupling Graph to Output File
-            (./mapper $circuitfile $couplingfile) \
-                2>&1 > $output/$circuitname--$couplingname.txt
-            # Run mapper on QASM and Coupling Graph to Record File
-            OUTPUT=$((time ./mapper $circuitfile $couplingfile) 2>&1)
+            time (./mapper $circuitfile $couplingfile 2>&1) \
+                1> $output/$circuitname--$couplingname.txt \
+                2>> $record
+            OUTPUT=`cat $output/$circuitname--$couplingname.txt`
             LINE=$(echo "$OUTPUT" | grep '//Number of Swaps: ')
             SWAPS=$(echo "$LINE" | cut -d ' ' -f 4 | sed 's/.$//')
             MAPPINGS=$(echo "$LINE" | cut -d ' ' -f 8)
@@ -55,7 +55,6 @@ for size in ./feedback_circuits/circuits/*; do
             else
                 echo "$SWAPS Swaps for $MAPPINGS Mappings" >> $record
             fi
-            echo "$OUTPUT" | tail -n3 >> $record
         done
     done
 done
