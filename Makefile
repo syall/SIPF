@@ -15,13 +15,13 @@ ifeq ($(OS),Windows_NT)
 	CFLAGS += -D WINDOWS
 	exe = mapper.exe
 else
-	mkdir += -p 
-	rm += -f -r 
+	mkdir += -p
+	rm += -f -r
 endif
 
 default: objs ${exe}
 
-debug: CFLAGS += -g -O0
+debug: CFLAGS += -g -O0  -fsanitize=address
 debug: default
 prof: CFLAGS += -pg -fno-inline
 prof: default

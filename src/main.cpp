@@ -4,7 +4,16 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 using namespace std;
+
+const int UNDEFINED_QUBIT = -1;
+
+#include "circuit.cpp"
+#include "sipf.cpp"
+#include "swapping.cpp"
+#include "compiler.cpp"
 
 int main(int argc, char** argv) {
 	char * qasmFileName = NULL;
@@ -28,22 +37,36 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	//Build dependency graph for the quantum circuit's gates; put dependency graph's roots into a set
+	// Preprocess Circuit
 	set<GateNode*> firstGates;
 	int numLogicalQubits = -1;
 	int numGates = -1;
-	buildDependencyGraph(qasmFileName, firstGates, numLogicalQubits, numGates);
+	pair<vector<vector<int>>, vector<GateNode*>> preprocessed =
+		preprocess_circuit(qasmFileName, firstGates, numLogicalQubits, numGates);
+	vector<vector<int>> live_ranges = preprocessed.first;
+	vector<GateNode*> gates_circuit = preprocessed.second;
 
-	//Parse the coupling map; put edges into a set
+	// Parse the coupling map; put edges into a set
 	int numPhysicalQubits = 0;
 	set<pair<int, int> > couplings;
 	buildCouplingMap(couplingMapFileName, couplings, numPhysicalQubits);
 	assert(numPhysicalQubits >= numLogicalQubits);
 
+	// Produce Mappings
+	vector<pair<pair<int, int>, vector<int>>> mappings = sipf(firstGates, couplings, numLogicalQubits, numPhysicalQubits, live_ranges, gates_circuit);
 
-	//student code goes here?
+	// Calculate Swaps
+	vector<vector<pair<int, int>>> swaps = calculate_swaps(
+		mappings,
+		couplings,
+		numLogicalQubits,
+		numPhysicalQubits);
 
+	// Compile Circuit
+	string circuit = compile_circuit(qasmFileName, mappings, swaps, gates_circuit);
 
-	//Exit the program:
+	// Output Circuit
+	cout << circuit << endl;
+
 	return 0;
 }

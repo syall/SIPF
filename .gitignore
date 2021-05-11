@@ -1,2 +1,11 @@
 # VS Code Settings
 .vscode/
+
+# Build
+mapper
+objs/*
+*.dSYM/
+
+# Output
+lab1*/
+lab1-queko*/
