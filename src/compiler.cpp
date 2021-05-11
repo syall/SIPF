@@ -46,6 +46,16 @@ string compile_circuit(
         }
     }
 
+    // Number of Swap Gates Added
+    int number_of_swaps = 0;
+    for (vector<pair<int, int>> swap_gates : swaps)
+    {
+        number_of_swaps += swap_gates.size();
+    }
+    circuit +=
+        "//Number of Swaps: " + to_string(number_of_swaps) +
+        ", Number of Mappings: " + to_string(mappings.size()) + "\n";
+
     // Iterate Mappings
     for (
         unsigned int mappings_index = 0;
