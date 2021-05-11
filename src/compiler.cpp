@@ -94,16 +94,28 @@ string compile_circuit(
         if (mappings_index < mappings.size() - 1)
         {
             vector<pair<int, int>> swap_gates = swaps[mappings_index];
-            circuit += "//Inserting Swaps\n";
             for (pair<int, int> swap_gate : swap_gates)
             {
-                // CNOT Gate = cx q[control], q[target]
+                // SWAP Gate using 3 CNOT Gates
+                string control = to_string(swap_gate.first);
+                string target = to_string(swap_gate.second);
+                circuit += "//Swap " + control + " and " + target + "\n";
+                // cx q[control], q[target]
                 circuit += "cx ";
-                circuit += "q[" + to_string(swap_gate.first) + "]";
+                circuit += "q[" + control + "]";
                 circuit += ", ";
-                circuit += "q[" + to_string(swap_gate.second) + "]";
+                circuit += "q[" + target + "]";
+                // cx q[target], q[control]
+                circuit += "cx ";
+                circuit += "q[" + target + "]";
+                circuit += ", ";
+                circuit += "q[" + control + "]";
+                // cx q[control], q[target]
+                circuit += "cx ";
+                circuit += "q[" + control + "]";
+                circuit += ", ";
+                circuit += "q[" + target + "]";
             }
-            circuit += "//Swaps Inserted\n";
         }
 
 
