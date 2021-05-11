@@ -97,41 +97,11 @@ sipf(
             gates_circuit.begin() + lower_bound,
             gates_circuit.begin() + upper_bound
         };
-        /*
-        {
-            cout << "Subcircuit [" << lower_bound << "," << upper_bound << "]:" << endl;
-            for (GateNode* gate : sub_circuit)
-            {
-                cout <<
-                    (gate->control == UNDEFINED_QUBIT ? "" : to_string(gate->control) + " ")
-                    << gate->target
-                    << endl;
-            }
-        }
-        */
 
         // Input: query graphs
         vector<vector<set<int>>> logical_islands = create_query_graphs(
             sub_circuit,
             num_logical_qubits);
-        /*
-        {
-            for (unsigned int i = 0; i < logical_islands.size(); i++)
-            {
-                cout << "Logical Island:" << endl;
-                vector<set<int>> logical_island = logical_islands[i];
-                for (unsigned int q = 0; q < logical_island.size(); q++)
-                {
-                    cout << q << ":";
-                    for (int neighbor : logical_island[q])
-                    {
-                        cout << " " << neighbor;
-                    }
-                    cout << endl;
-                }
-            }
-        }
-        */
 
         pair<unsigned int, vector<set<int>>> failure_heuristic(
             0,
@@ -151,27 +121,6 @@ sipf(
             UNDEFINED_QUBIT,
             failure_heuristic))
         {
-            /*
-            cout << "//Location of qubits: ";
-            for (unsigned int logical_qubit = 0; logical_qubit < num_logical_qubits; logical_qubit++)
-            {
-                cout << mapping[logical_qubit];
-                if (logical_qubit != num_logical_qubits - 1) {
-                    cout << ",";
-                }
-            }
-            cout << endl;
-            cout << "Seen Logical Qubits:";
-            for(auto v : seen) {
-                cout << " " << v;
-            }
-            cout << endl;
-            cout << "Mapped Physical Qubits:";
-            for(auto v : mapped) {
-                cout << " " << v;
-            }
-            cout << endl;
-            */
             mappings.push_back(pair<pair<int, int>, vector<int>>(
                 pair<int, int>(lower_bound, upper_bound),
                 mapping));
@@ -180,9 +129,7 @@ sipf(
         }
         else
         {
-            // cout << "no" << endl;
-            // cout << mapping.size() << endl;
-            // TODO: Root Failure Heuristic
+            // Root Failure Heuristic
             // - Update bounds based on failure heuristic
             // - Find Latest Gate in of the Earliest Conflict Gates
             set<int> conflict_gates;
@@ -198,31 +145,6 @@ sipf(
                 }
             }
             upper_bound = *conflict_gates.rbegin() - 1;
-
-            /*
-            {
-                cout << "fail" << endl;
-                cout << "Max Size: " << failure_heuristic.first << endl;
-                cout << "Conflicts:" << endl;
-                for (unsigned int i = 0; i < failure_heuristic.second.size(); i++)
-                {
-                    cout << i << ":";
-                    for (int conflict : failure_heuristic.second[i])
-                    {
-                        cout << " " << conflict;
-                    }
-                    cout << endl;
-                }
-                cout << "Conflict Gates:";
-                for (int gate : conflict_gates)
-                {
-                    cout << " " << gate;
-                }
-                cout << endl;
-                cout << upper_bound << endl;
-                exit(0);
-            }
-            */
         }
     }
 
@@ -246,7 +168,6 @@ create_query_graphs(
     {
         for (GateNode* current : gates_circuit)
         {
-            // cout << current->control << " " << current->target << endl;
             // If Gate is target only
             if (current->control == UNDEFINED_QUBIT)
             {
@@ -259,18 +180,6 @@ create_query_graphs(
                 logical_graph[current->control].insert(current->target);
             }
         }
-        /*
-        cout << "Logical Graph" << endl;
-        for (int i = 0; i < num_logical_qubits; i++)
-        {
-            cout << i << ":";
-            for (int neighbor : logical_graph[i])
-            {
-                cout << " " << neighbor;
-            }
-            cout << endl;
-        }
-        */
     }
 
     vector<vector<set<int>>> logical_islands;
@@ -480,47 +389,9 @@ backtrack_level(
     for_each(logical_graph.begin(), logical_graph.end(), [&logical_size](set<int> s) {
         logical_size += s.size();
     });
-    /*
-    {
-        cout << "Logical Graph of size " << logical_size << ":" << endl;
-        for (unsigned int q = 0; q < logical_graph.size(); q++)
-        {
-            cout << q << ":";
-            for (int neighbor : logical_graph[q])
-            {
-                cout << " " << neighbor;
-            }
-            cout << endl;
-        }
-    }
-    */
 
     // Input: data graph G
     vector<set<int>> physical_graph = create_data_graph(couplings, num_physical_qubits, mapped);
-    /*
-    {
-        cout << "Seen Logical Qubits:";
-        for(auto v : seen) {
-            cout << " " << v;
-        }
-        cout << endl;
-        cout << "Mapped Physical Qubits:";
-        for(auto v : mapped) {
-            cout << " " << v;
-        }
-        cout << endl;
-        cout << "Physical Graph:" << endl;
-        for (unsigned int q = 0; q < physical_graph.size(); q++)
-        {
-            cout << q << ":";
-            for (int neighbor : physical_graph[q])
-            {
-                cout << " " << neighbor;
-            }
-            cout << endl;
-        }
-    }
-    */
 
     // Backtrack(q, q_D, CS, M)
     vector<vector<set<int>>> next_level = query_graphs;
@@ -541,9 +412,9 @@ backtrack_level(
 
         if (logical_qubit == UNDEFINED_QUBIT)
         {
-            // Should be Impossible
-            cout << "should be impossible" << endl;
-            return false;
+            // Should be impossible due to assertions when processsing the circuit
+            cerr << "Number of Logical Qubits is fewer than Number of Physical Qubits" << endl;
+            exit(1);
         }
 
         int physical_qubit = UNDEFINED_QUBIT;
@@ -572,7 +443,6 @@ backtrack_level(
             {
                 failure_heuristic.second[logical_qubit].insert(logical_qubit);
             }
-            // cout << "fail: " << failure_heuristic.first << endl;
             return false;
         }
 
@@ -600,18 +470,6 @@ backtrack_level(
         vector<set<int>> candidate_sets = logical_dag_result.first;
         int dag_root = logical_dag_result.second.first;
         vector<set<int>> logical_dag = logical_dag_result.second.second;
-        /*
-        cout << "Logical DAG with root " << dag_root << ":" << endl;
-        for (unsigned int q = 0; q < logical_dag.size(); q++)
-        {
-            cout << q << ":";
-            for (int neighbor : logical_dag[q])
-            {
-                cout << " " << neighbor;
-            }
-            cout << endl;
-        }
-        */
 
         // CS <- BuildCS(q, q_D, G)
         pair<vector<set<int>>, vector<set<int>>> candidate_space = create_candidate_space(
@@ -620,28 +478,6 @@ backtrack_level(
             logical_dag,
             physical_graph);
         vector<set<int>> candidate_edges = candidate_space.second;
-        /*
-        cout << "Candidate Sets:" << endl;
-        for (unsigned int q = 0; q < candidate_sets.size(); q++)
-        {
-            cout << q << ":";
-            for (int candidate : candidate_sets[q])
-            {
-                cout << " " << candidate;
-            }
-            cout << endl;
-        }
-        cout << "Candidate Edges:" << endl;
-        for (unsigned int q = 0; q < candidate_edges.size(); q++)
-        {
-            cout << q << ":";
-            for (int neighbor : candidate_edges[q])
-            {
-                cout << " " << neighbor;
-            }
-            cout << endl;
-        }
-        */
 
         // Parents
         vector<set<int>> parents(logical_dag.size());
@@ -652,18 +488,6 @@ backtrack_level(
                 parents[neighbor].insert(v);
             }
         }
-        /*
-        cout << "Parents:" << endl;
-        for (unsigned int q = 0; q < parents.size(); q++)
-        {
-            cout << q << ":";
-            for (int neighbor : parents[q])
-            {
-                cout << " " << neighbor;
-            }
-            cout << endl;
-        }
-        */
 
         set<int> frontier{dag_root};
         return backtrack_level_helper(
@@ -706,13 +530,11 @@ backtrack_level_helper(
         // If no more query graphs, success
         if (query_graphs.empty())
         {
-            // cout << "query_graphs is empty" << endl;
             return true;
         }
         // Otherwise, recursively call with new query graph
         else
         {
-            // cout << "query_graphs is not empty" << endl;
             return backtrack_level(
                 query_graphs,
                 couplings,
@@ -728,8 +550,6 @@ backtrack_level_helper(
     // Currently ordered by int compare
     for (int current : frontier)
     {
-
-        // cout << current << endl;
 
         // If no parents, aka root
         if (parents[current].empty())
@@ -799,7 +619,6 @@ backtrack_level_helper(
                     failure_heuristic.second[current].insert(previous);
                 }
             }
-            // cout << "fail: " << failure_heuristic.first << endl;
             return false;
         }
         // If parents
@@ -853,8 +672,6 @@ backtrack_level_helper(
                         failure_heuristic.second[current].insert(previous);
                     }
                 }
-                // cout << "no more candidates" << endl;
-                // cout << "fail: " << failure_heuristic.first << endl;
                 return false;
             }
 
@@ -926,7 +743,6 @@ backtrack_level_helper(
                     failure_heuristic.second[current].insert(previous);
                 }
             }
-            // cout << "fail: " << failure_heuristic.first << endl;
             return false;
         }
 
@@ -953,7 +769,6 @@ backtrack_level_helper(
             failure_heuristic.second[previous].insert(previous);
         }
     }
-    // cout << "fail: " << failure_heuristic.first << endl;
     return false;
 
 }

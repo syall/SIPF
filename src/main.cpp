@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	//Build dependency graph for the quantum circuit's gates; put dependency graph's roots into a set
+	// Preprocess Circuit
 	set<GateNode*> firstGates;
 	int numLogicalQubits = -1;
 	int numGates = -1;
@@ -45,58 +45,28 @@ int main(int argc, char** argv) {
 		preprocess_circuit(qasmFileName, firstGates, numLogicalQubits, numGates);
 	vector<vector<int>> live_ranges = preprocessed.first;
 	vector<GateNode*> gates_circuit = preprocessed.second;
-	/*
-	for (unsigned int q1 = 0; q1 < numLogicalQubits; q1++)
-	{
-		for (unsigned int q2 = 0; q2 < numLogicalQubits; q2++)
-		{
-			cout << "Gates between " << q1 << " and " << q2 << ":";
-			for (auto iter = live_ranges[q1 * numLogicalQubits + q2].begin();
-				 iter != live_ranges[q1 * numLogicalQubits + q2].end();
-				 iter++)
-			{
-				cout << " " << *iter;
-			}
-			cout << endl;
-		}
-	}
-	*/
 
-	//Parse the coupling map; put edges into a set
+	// Parse the coupling map; put edges into a set
 	int numPhysicalQubits = 0;
 	set<pair<int, int> > couplings;
 	buildCouplingMap(couplingMapFileName, couplings, numPhysicalQubits);
 	assert(numPhysicalQubits >= numLogicalQubits);
 
-	//student code goes here?
+	// Produce Mappings
 	vector<pair<pair<int, int>, vector<int>>> mappings = sipf(firstGates, couplings, numLogicalQubits, numPhysicalQubits, live_ranges, gates_circuit);
-    /*
-    {
-        cout << "Mappings with Ranges:" << endl;
-        for (auto entry : mappings)
-        {
-            pair<int, int> range = entry.first;
-            cout << "Range [" << range.first << "," << range.second << "]" << endl;
-            vector<int> mapping = entry.second;
-            cout << "//Location of qubits: ";
-            for (int logical_qubit = 0; logical_qubit < numLogicalQubits; logical_qubit++)
-            {
-                cout << mapping[logical_qubit];
-                if (logical_qubit != numLogicalQubits - 1) {
-                    cout << ",";
-                }
-            }
-            cout << endl;
-        }
-        exit(0);
-    }
-    */
 
-	vector<vector<pair<int, int>>> swaps = calculate_swaps(mappings, couplings, numPhysicalQubits);
+	// Calculate Swaps
+	vector<vector<pair<int, int>>> swaps = calculate_swaps(
+		mappings,
+		couplings,
+		numLogicalQubits,
+		numPhysicalQubits);
 
+	// Compile Circuit
 	string circuit = compile_circuit(qasmFileName, mappings, swaps, gates_circuit);
+
+	// Output Circuit
 	cout << circuit << endl;
 
-	//Exit the program:
 	return 0;
 }

@@ -20,7 +20,6 @@ string compile_circuit(
         if (qasmFile.is_open()){
             string line;
             while (getline(qasmFile, line)){
-                // cout << "Line: " << line << endl;
                 if (line.rfind("OPENQASM", 0) == 0 ||
                     line.rfind("include", 0) == 0 ||
                     line.rfind("qreg", 0) == 0 ||
@@ -42,7 +41,7 @@ string compile_circuit(
         }
         else
         {
-            cout << "Error opening file \"" << qasmFileName << "\"" << endl;
+            cerr << "Error opening file \"" << qasmFileName << "\"" << endl;
             exit(1);
         }
     }
@@ -94,27 +93,28 @@ string compile_circuit(
         if (mappings_index < mappings.size() - 1)
         {
             vector<pair<int, int>> swap_gates = swaps[mappings_index];
+            circuit += "//Inserted " + to_string(swap_gates.size()) + " Swap Gates\n";
             for (pair<int, int> swap_gate : swap_gates)
             {
                 // SWAP Gate using 3 CNOT Gates
                 string control = to_string(swap_gate.first);
                 string target = to_string(swap_gate.second);
-                circuit += "//Swap " + control + " and " + target + "\n";
+                circuit += "//" + control + " <-> " + target + "\n";
                 // cx q[control], q[target]
                 circuit += "cx ";
                 circuit += "q[" + control + "]";
                 circuit += ", ";
-                circuit += "q[" + target + "]";
+                circuit += "q[" + target + "]\n";
                 // cx q[target], q[control]
                 circuit += "cx ";
                 circuit += "q[" + target + "]";
                 circuit += ", ";
-                circuit += "q[" + control + "]";
+                circuit += "q[" + control + "]\n";
                 // cx q[control], q[target]
                 circuit += "cx ";
                 circuit += "q[" + control + "]";
                 circuit += ", ";
-                circuit += "q[" + target + "]";
+                circuit += "q[" + target + "]\n";
             }
         }
 
