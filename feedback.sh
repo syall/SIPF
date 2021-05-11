@@ -3,10 +3,10 @@
 # Output Directory
 output=feedback/
 
-# feedback_circuits/ccircuit/*/(*).qasm Capture Regex
+# feedback_circuits/circuit/*/(*).qasm Capture Regex
 qasmregex="./feedback_circuits/circuits/.*/(.*).qasm"
 
-# feedback_circuits/ccouplings/(*).txt Capture Regex
+# feedback_circuits/couplings/(*).txt Capture Regex
 txtregex="./feedback_circuits/couplings/(.*).txt"
 
 # Hide excessive trap messages
