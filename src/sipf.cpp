@@ -68,8 +68,6 @@ backtrack_level_helper(
     int previous,
     pair<unsigned int, vector<set<int>>> &failure_heuristic);
 
-void destroyDependencyGraph(set<GateNode *> &firstGates);
-
 /**
  * Partitioning of Control Relations (PCR)
  * @param frontier Input: Set of Next Candidates
