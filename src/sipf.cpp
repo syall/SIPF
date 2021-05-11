@@ -11,7 +11,6 @@ using namespace std;
 
 vector<pair<pair<int, int>, vector<int>>>
 sipf(
-    set<GateNode *> &frontier,
     set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits,
@@ -68,24 +67,15 @@ backtrack_level_helper(
     int previous,
     pair<unsigned int, vector<set<int>>> &failure_heuristic);
 
-/**
- * Partitioning of Control Relations (PCR)
- * @param frontier Input: Set of Next Candidates
- * @param couplings Input: Coupling Graph
- * @param num_logical_qubits Input: Number of Logical Qubits to be mapped
- * @param num_physical_qubits Input: Maximum number of Physical Qubits to be mapped
- * @return mappings with ranges
- */
 vector<pair<pair<int, int>, vector<int>>>
 sipf(
-    set<GateNode *> &frontier,
     set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits,
     vector<vector<int>> live_ranges,
     vector<GateNode*> gates_circuit)
 {
-    int max_bound = gates_circuit.size() - 1;
+    int max_bound = gates_circuit.size();
     int lower_bound = 0;
     int upper_bound = max_bound;
     vector<pair<pair<int, int>, vector<int>>> mappings;
@@ -104,7 +94,7 @@ sipf(
             num_logical_qubits);
 
         pair<unsigned int, vector<set<int>>> failure_heuristic(
-            0,
+            1,
             vector<set<int>>(num_logical_qubits));
 
         // M <- EMPTY
@@ -132,19 +122,27 @@ sipf(
             // Root Failure Heuristic
             // - Update bounds based on failure heuristic
             // - Find Latest Gate in of the Earliest Conflict Gates
-            set<int> conflict_gates;
+            vector<int> conflict_gates;
             for (int i = 0; i < (int)failure_heuristic.second.size(); i++)
             {
                 for (int conflict : failure_heuristic.second[i])
                 {
-                    conflict_gates.insert(earliest_intersection(
+                    conflict_gates.push_back(latest_intersection(
                         live_ranges,
                         pair<int, int>(i, conflict),
                         pair<int, int>(lower_bound, upper_bound),
                         num_logical_qubits));
                 }
             }
-            upper_bound = *conflict_gates.rbegin() - 1;
+            if (conflict_gates.empty())
+            {
+                upper_bound = upper_bound - 1;
+            }
+            else
+            {
+                sort(conflict_gates.begin(), conflict_gates.end(), greater<int>());
+                upper_bound = conflict_gates[0] - 1;
+            }
         }
     }
 
@@ -260,7 +258,7 @@ create_data_graph(
     vector<set<int>> physical_graph(num_physical_qubits);
 
     // Iterate Edges to form Adjacency Lists
-    for (auto edge : couplings)
+    for (pair<int, int> edge : couplings)
     {
         if (filter_qubits.find(edge.first) == filter_qubits.end() &&
             filter_qubits.find(edge.second) == filter_qubits.end())
@@ -456,8 +454,8 @@ backtrack_level(
             mapping,
             seen,
             mapped,
-            logical_qubit,
             num_physical_qubits,
+            logical_qubit,
             failure_heuristic);
     }
     else
