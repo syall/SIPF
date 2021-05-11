@@ -141,7 +141,7 @@ sipf(
             else
             {
                 sort(conflict_gates.begin(), conflict_gates.end(), greater<int>());
-                upper_bound = conflict_gates[0];
+                upper_bound = conflict_gates[0] - 1;
             }
         }
     }

@@ -105,10 +105,10 @@ swap_qubits(
             int new_i_cost = distance_matrix[neighbor][mapping2[i]];
             int neighbor_cost = index != test_mapping.size()
                 ? distance_matrix[neighbor][mapping2[index]]
-                : 0;
+                : coupling_graph.size() / 2;
             int new_neighbor_cost = index != test_mapping.size()
                 ? distance_matrix[mapping1[i]][mapping2[index]]
-                : coupling_graph.size();
+                : coupling_graph.size() / 2;
             int current_cost = cost
                 // i's swap
                 - i_cost
@@ -197,7 +197,7 @@ calculate_swaps(
 
         // Find smallest swaps between 2 mappings
         // 4-approximation Cost Lower Bound = Cost / 2 (Miltzow et al. 2016)
-        for (int depth = cost / 2; depth <= cost; depth++)
+        for (int depth = cost / 2; true; depth++)
         {
             if (swap_qubits(
                 mapping1,
@@ -227,12 +227,6 @@ calculate_swaps(
             {
                 local_swaps.clear();
             }
-        }
-
-        if (local_swaps.empty())
-        {
-            cerr << "Could not find reasonable swaps between two mappings" << endl;
-            exit(1);
         }
     }
 
