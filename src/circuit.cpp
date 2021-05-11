@@ -196,26 +196,26 @@ preprocess_circuit(string qasmFileName, int &num_logical_qubits) {
 }
 
 
-int earliest_intersection(vector<vector<int>> live_ranges, pair<int, int> qubits, pair<int, int> range, int num_logical_qubits)
+int latest_intersection(vector<vector<int>> live_ranges, pair<int, int> qubits, pair<int, int> range, int num_logical_qubits)
 {
 	vector<int> live_range_entries = live_ranges[qubits.first * num_logical_qubits + qubits.second];
 
 	int lower_bound = range.first;
 	int upper_bound = range.second;
 
-	for (unsigned int i = 0; i < live_range_entries.size(); i++)
+	for (int i = live_range_entries.size() - 1; i >= 0; i--)
 	{
-		if (live_range_entries[i] < lower_bound)
+		if (live_range_entries[i] >= upper_bound)
 		{
 			continue;
 		}
-		if (live_range_entries[i] >= lower_bound && live_range_entries[i] < upper_bound)
+		if (live_range_entries[i] > lower_bound)
 		{
 			return live_range_entries[i];
 		}
 	}
 
-	return upper_bound;
+	return upper_bound - 1;
 }
 
 void destroy_gates(vector<GateNode*> gates_circuit)
