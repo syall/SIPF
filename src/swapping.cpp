@@ -197,9 +197,9 @@ calculate_swaps(
         }
 
         // Find smallest swaps between 2 mappings
-        for (int depth = 1; depth < cost; depth++)
+        // 4-approximation Cost Lower Bound = Cost / 2 (Miltzow et al. 2016)
+        for (int depth = cost / 2; depth <= cost; depth++)
         {
-            // cout << "depth " << depth << ": ";
             clock_t start = clock();
             if (swap_qubits(
                 mapping1,
