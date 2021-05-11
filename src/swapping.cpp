@@ -3,7 +3,6 @@
 #include <queue>
 #include <utility>
 #include <algorithm>
-#include <ctime>
 using namespace std;
 
 static vector<vector<int>>
@@ -200,7 +199,6 @@ calculate_swaps(
         // 4-approximation Cost Lower Bound = Cost / 2 (Miltzow et al. 2016)
         for (int depth = cost / 2; depth <= cost; depth++)
         {
-            clock_t start = clock();
             if (swap_qubits(
                 mapping1,
                 mapping2,
@@ -229,8 +227,6 @@ calculate_swaps(
             {
                 local_swaps.clear();
             }
-            double duration; duration = (clock() - start) / (double)CLOCKS_PER_SEC;
-            cout<< duration << endl;
         }
 
         if (local_swaps.empty())
