@@ -4,3 +4,6 @@
 [submodule "enfield"]
 	path = enfield
 	url = git@github.com:ysiraichi/enfield.git
+[submodule "jsoncpp"]
+	path = jsoncpp
+	url = git@github.com:open-source-parsers/jsoncpp.git
