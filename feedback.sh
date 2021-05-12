@@ -9,6 +9,9 @@ qasmregex="./feedback_circuits/circuits/.*/(.*).qasm"
 # feedback_circuits/couplings/(*).txt Capture Regex
 txtregex="./feedback_circuits/couplings/(.*).txt"
 
+# Assertion Regex
+assertionregex="^mapper:"
+
 # Hide excessive trap messages
 trap "" SIGABRT
 
@@ -45,15 +48,12 @@ for size in ./feedback_circuits/circuits/*; do
             time (./mapper $circuitfile $couplingfile 2>&1) \
                 1> $output/$circuitname--$couplingname.txt \
                 2>> $record
-            OUTPUT=`cat $output/$circuitname--$couplingname.txt`
-            LINE=$(echo "$OUTPUT" | grep '//Number of Swaps: ')
-            SWAPS=$(echo "$LINE" | cut -d ' ' -f 4 | sed 's/.$//')
-            MAPPINGS=$(echo "$LINE" | cut -d ' ' -f 8)
-            if [ -z "$SWAPS" ]
+            OUTPUT=`head -n 4 $output/$circuitname--$couplingname.txt`
+            if [[ $OUTPUT =~ $assertionregex ]]
             then
                 echo "No Mappings Possible" >> $record
             else
-                echo "$SWAPS Swaps for $MAPPINGS Mappings" >> $record
+                echo "$OUTPUT" >> $record
             fi
         done
     done
