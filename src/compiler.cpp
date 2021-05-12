@@ -107,22 +107,10 @@ string compile_circuit(
                 circuit += "//Insert " + to_string(swap_gates.size()) + " Swap Gates\n";
                 for (pair<int, int> swap_gate : swap_gates)
                 {
-                    // SWAP Gate using 3 CNOT Gates
+                    // SWAP Gate
                     string control = to_string(swap_gate.first);
                     string target = to_string(swap_gate.second);
-                    circuit += "//" + control + " <-> " + target + "\n";
-                    // cx q[control], q[target]
-                    circuit += "cx ";
-                    circuit += "q[" + control + "]";
-                    circuit += ", ";
-                    circuit += "q[" + target + "];\n";
-                    // cx q[target], q[control]
-                    circuit += "cx ";
-                    circuit += "q[" + target + "]";
-                    circuit += ", ";
-                    circuit += "q[" + control + "];\n";
-                    // cx q[control], q[target]
-                    circuit += "cx ";
+                    circuit += "swp ";
                     circuit += "q[" + control + "]";
                     circuit += ", ";
                     circuit += "q[" + target + "];\n";

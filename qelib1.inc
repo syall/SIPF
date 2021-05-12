@@ -93,3 +93,11 @@ gate cu3(theta,phi,lambda) c, t
   cx c,t;
   u3(theta/2,phi,0) t;
 }
+// swap
+gate swp c,t
+{
+  // 3 CNOT gates
+  cx c, t;
+  cx t, c;
+  cx c, t;
+}
