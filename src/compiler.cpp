@@ -78,14 +78,14 @@ string compile_circuit(
                 // If gate is single
                 if (gate->control == UNDEFINED_QUBIT)
                 {
-                    circuit += "q[" + to_string(gate->target) + "]";
+                    circuit += "q[" + to_string(initial_mapping[gate->target]) + "]";
                 }
                 // If gate is double
                 else
                 {
                     circuit +=
-                        "q[" + to_string(gate->control) + "], " +
-                        "q[" + to_string(gate->target) + "]";
+                        "q[" + to_string(initial_mapping[gate->control]) + "], " +
+                        "q[" + to_string(initial_mapping[gate->target]) + "]";
                 }
                 circuit += ";\n";
             }
@@ -94,7 +94,7 @@ string compile_circuit(
             if (mappings_index < mappings.size() - 1)
             {
                 vector<pair<int, int>> swap_gates = swaps[mappings_index];
-                circuit += "//Inserted " + to_string(swap_gates.size()) + " Swap Gates\n";
+                circuit += "//Insert " + to_string(swap_gates.size()) + " Swap Gates\n";
                 for (pair<int, int> swap_gate : swap_gates)
                 {
                     // SWAP Gate using 3 CNOT Gates
