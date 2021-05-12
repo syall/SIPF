@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 	string circuit = compile_circuit(qasmFileName, mappings, swaps, gates_circuit);
 
 	// Output Circuit
-	cout << circuit << endl;
+	cout << circuit;
 
 	// Clean up memory
 	destroy_gates(gates_circuit);
