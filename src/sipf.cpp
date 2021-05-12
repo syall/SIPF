@@ -15,7 +15,8 @@ sipf(
     int num_logical_qubits,
     int num_physical_qubits,
     vector<vector<int>> live_ranges,
-    vector<GateNode*> gates_circuit);
+    vector<GateNode*> gates_circuit,
+    bool optimal);
 
 static vector<vector<set<int>>>
 create_query_graphs(
@@ -73,7 +74,8 @@ sipf(
     int num_logical_qubits,
     int num_physical_qubits,
     vector<vector<int>> live_ranges,
-    vector<GateNode*> gates_circuit)
+    vector<GateNode*> gates_circuit,
+    bool optimal)
 {
     int max_bound = gates_circuit.size();
     int lower_bound = 0;
@@ -101,6 +103,7 @@ sipf(
         vector<int> mapping(num_logical_qubits, UNDEFINED_QUBIT);
         set<int> seen;
         set<int> mapped;
+        // Mapping is Found
         if (backtrack_level(
             logical_islands,
             couplings,
@@ -114,19 +117,23 @@ sipf(
             mappings.push_back(pair<pair<int, int>, vector<int>>(
                 pair<int, int>(lower_bound, upper_bound),
                 mapping));
-            lower_bound = upper_bound + 1;
+            lower_bound = upper_bound;
             upper_bound = max_bound;
         }
+        // Decrease Iteratively
+        else if (optimal == true)
+        {
+            upper_bound = upper_bound - 1;
+        }
+        // Root Failure Heuristic
         else
         {
-            // Root Failure Heuristic
-            // - Update bounds based on failure heuristic
-            // - Find Latest Gate in of the Earliest Conflict Gates
             vector<int> conflict_gates;
             for (int i = 0; i < (int)failure_heuristic.second.size(); i++)
             {
                 for (int conflict : failure_heuristic.second[i])
                 {
+                    // Find Latest Gate in of the Earliest Conflict Gates
                     conflict_gates.push_back(latest_intersection(
                         live_ranges,
                         pair<int, int>(i, conflict),
@@ -134,6 +141,7 @@ sipf(
                         num_logical_qubits));
                 }
             }
+            // Update bounds based on Conflict Gates
             if (conflict_gates.empty())
             {
                 upper_bound = upper_bound - 1;
@@ -141,7 +149,7 @@ sipf(
             else
             {
                 sort(conflict_gates.begin(), conflict_gates.end(), greater<int>());
-                upper_bound = conflict_gates[0] - 1;
+                upper_bound = conflict_gates[0];
             }
         }
     }

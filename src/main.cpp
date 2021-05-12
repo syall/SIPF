@@ -22,6 +22,7 @@ int main(int argc, char** argv)
 	// int latency1 = 1;
 	// int latency2 = 1;
 	// int latencySwp = 1;
+	bool optimal = false;
 
 	// Parse command-line arguments:
 	for(int iter = 1; iter < argc; iter++)
@@ -34,6 +35,10 @@ int main(int argc, char** argv)
 			++iter;
 			// latencySwp = atoi(argv[++iter]);
 			++iter;
+		}
+		if (!strcmp(argv[iter], "-optimal"))
+		{
+			optimal = true;
 		}
 		else if (!qasmFileName)
 		{
@@ -59,7 +64,7 @@ int main(int argc, char** argv)
 
 	// Parse the coupling map; put edges into a set
 	int num_physical_qubits = -1;
-	set<pair<int, int> > couplings;
+	set<pair<int, int>> couplings;
 	buildCouplingMap(
 		couplingMapFileName,
 		couplings,
@@ -72,7 +77,8 @@ int main(int argc, char** argv)
 		num_logical_qubits,
 		num_physical_qubits,
 		live_ranges,
-		gates_circuit);
+		gates_circuit,
+		optimal);
 
 	// Calculate Swaps
 	vector<vector<pair<int, int>>> swaps = calculate_swaps(
@@ -82,13 +88,16 @@ int main(int argc, char** argv)
 		num_physical_qubits);
 
 	// Compile Circuit
-	string circuit = compile_circuit(qasmFileName, mappings, swaps, gates_circuit);
+	string circuit = compile_circuit(
+		qasmFileName,
+		mappings,
+		swaps,
+		gates_circuit,
+		couplings,
+		num_physical_qubits);
 
 	// Output Circuit
 	cout << circuit;
-
-	// Clean up memory
-	destroy_gates(gates_circuit);
 
 	return 0;
 }

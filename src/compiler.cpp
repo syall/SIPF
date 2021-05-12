@@ -4,14 +4,17 @@
 #include <fstream>
 #include <string>
 #include <utility>
-#include <stdio.h>
+#include <cstdio>
+#include <cassert>
 using namespace std;
 
 string compile_circuit(
     string qasmFileName,
     vector<pair<pair<int, int>, vector<int>>> &mappings,
     vector<vector<pair<int, int>>> &swaps,
-    vector<GateNode*> &gates_circuit)
+    vector<GateNode*> &gates_circuit,
+    set<pair<int, int>> &couplings,
+    int num_physical_qubits)
 {
     string circuit = "";
 
@@ -24,11 +27,14 @@ string compile_circuit(
             while (getline(qasmFile, line)){
                 if (line.rfind("OPENQASM", 0) == 0 ||
                     line.rfind("include", 0) == 0 ||
-                    line.rfind("qreg", 0) == 0 ||
                     line.rfind("creg", 0) == 0 ||
                     line.rfind("//", 0) == 0)
                 {
                     circuit += line + "\n";
+                }
+                else if (line.rfind("qreg", 0) == 0)
+                {
+                    circuit += "qreg q[" + to_string(num_physical_qubits) + "];\n";
                 }
                 else if (line.length() == 0)
                 {
@@ -68,10 +74,7 @@ string compile_circuit(
             // Write Gates up to Upper Bound
             int lower_bound = mappings[mappings_index].first.first;
             int upper_bound = mappings[mappings_index].first.second;
-            for (
-                int gate_index = lower_bound;
-                gate_index <= upper_bound && gate_index < (int)gates_circuit.size();
-                gate_index++)
+            for (int gate_index = lower_bound; gate_index < upper_bound; gate_index++)
             {
                 GateNode* gate = gates_circuit[gate_index];
                 circuit += gate->name + " ";
@@ -83,9 +86,16 @@ string compile_circuit(
                 // If gate is double
                 else
                 {
+                    int control = initial_mapping[gate->control];
+                    int target = initial_mapping[gate->target];
+                    assert(control != target);
+                    pair<int, int> edge = control < target
+                        ? pair<int, int>(control, target)
+                        : pair<int, int>(target, control);
+                    assert(couplings.find(edge) != couplings.end());
                     circuit +=
-                        "q[" + to_string(initial_mapping[gate->control]) + "], " +
-                        "q[" + to_string(initial_mapping[gate->target]) + "]";
+                        "q[" + to_string(control) + "], " +
+                        "q[" + to_string(target) + "]";
                 }
                 circuit += ";\n";
             }
