@@ -15,7 +15,8 @@ sipf(
     int num_logical_qubits,
     int num_physical_qubits,
     vector<vector<int>> live_ranges,
-    vector<GateNode*> gates_circuit);
+    vector<GateNode*> gates_circuit,
+    bool optimal);
 
 static vector<vector<set<int>>>
 create_query_graphs(
@@ -67,13 +68,39 @@ backtrack_level_helper(
     int previous,
     pair<unsigned int, vector<set<int>>> &failure_heuristic);
 
+static bool
+backtrack_level_optimal(
+    vector<vector<set<int>>> &query_graphs,
+    set<pair<int, int>> &couplings,
+    vector<int> &mapping,
+    set<int> &seen,
+    set<int> &mapped,
+    int num_physical_qubits,
+    int previous);
+
+static bool
+backtrack_level_helper_optimal(
+    vector<vector<set<int>>> &query_graphs,
+    set<pair<int, int>> &couplings,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
+    vector<set<int>> &parents,
+    vector<set<int>> &query_dag,
+    vector<int> &mapping,
+    set<int> &frontier,
+    set<int> &seen,
+    set<int> &mapped,
+    int num_physical_qubits,
+    int previous);
+
 vector<pair<pair<int, int>, vector<int>>>
 sipf(
     set<pair<int, int>> &couplings,
     int num_logical_qubits,
     int num_physical_qubits,
     vector<vector<int>> live_ranges,
-    vector<GateNode*> gates_circuit)
+    vector<GateNode*> gates_circuit,
+    bool optimal)
 {
     int max_bound = gates_circuit.size();
     int lower_bound = 0;
@@ -93,55 +120,85 @@ sipf(
             sub_circuit,
             num_logical_qubits);
 
-        pair<unsigned int, vector<set<int>>> failure_heuristic(
-            1,
-            vector<set<int>>(num_logical_qubits));
-
         // M <- EMPTY
         vector<int> mapping(num_logical_qubits, UNDEFINED_QUBIT);
         set<int> seen;
         set<int> mapped;
-        if (backtrack_level(
-            logical_islands,
-            couplings,
-            mapping,
-            seen,
-            mapped,
-            num_physical_qubits,
-            UNDEFINED_QUBIT,
-            failure_heuristic))
+
+        // Optimal Search
+        if (optimal == true)
         {
-            mappings.push_back(pair<pair<int, int>, vector<int>>(
-                pair<int, int>(lower_bound, upper_bound),
-                mapping));
-            lower_bound = upper_bound + 1;
-            upper_bound = max_bound;
-        }
-        else
-        {
-            // Root Failure Heuristic
-            // - Update bounds based on failure heuristic
-            // - Find Latest Gate in of the Earliest Conflict Gates
-            vector<int> conflict_gates;
-            for (int i = 0; i < (int)failure_heuristic.second.size(); i++)
+            // Mapping is Found
+            if (backtrack_level_optimal(
+                logical_islands,
+                couplings,
+                mapping,
+                seen,
+                mapped,
+                num_physical_qubits,
+                UNDEFINED_QUBIT))
             {
-                for (int conflict : failure_heuristic.second[i])
-                {
-                    conflict_gates.push_back(latest_intersection(
-                        live_ranges,
-                        pair<int, int>(i, conflict),
-                        pair<int, int>(lower_bound, upper_bound),
-                        num_logical_qubits));
-                }
+                mappings.push_back(pair<pair<int, int>, vector<int>>(
+                    pair<int, int>(lower_bound, upper_bound),
+                    mapping));
+                lower_bound = upper_bound;
+                upper_bound = max_bound;
             }
-            if (conflict_gates.empty())
+            // Decrease Iteratively
+            else
             {
                 upper_bound = upper_bound - 1;
             }
+        }
+        // Failure Heuristic Search
+        else
+        {
+            pair<unsigned int, vector<set<int>>> failure_heuristic(
+                1,
+                vector<set<int>>(num_logical_qubits));
+            // Mapping is Found
+            if (backtrack_level(
+                logical_islands,
+                couplings,
+                mapping,
+                seen,
+                mapped,
+                num_physical_qubits,
+                UNDEFINED_QUBIT,
+                failure_heuristic))
+            {
+                mappings.push_back(pair<pair<int, int>, vector<int>>(
+                    pair<int, int>(lower_bound, upper_bound),
+                    mapping));
+                lower_bound = upper_bound;
+                upper_bound = max_bound;
+            }
+            // Root Failure Heuristic
             else
             {
-                sort(conflict_gates.begin(), conflict_gates.end(), greater<int>());
-                upper_bound = conflict_gates[0] - 1;
+                vector<int> conflict_gates;
+                for (int i = 0; i < (int)failure_heuristic.second.size(); i++)
+                {
+                    for (int conflict : failure_heuristic.second[i])
+                    {
+                        // Find Latest Gate in of the Earliest Conflict Gates
+                        conflict_gates.push_back(latest_intersection(
+                            live_ranges,
+                            pair<int, int>(i, conflict),
+                            pair<int, int>(lower_bound, upper_bound),
+                            num_logical_qubits));
+                    }
+                }
+                // Update bounds based on Conflict Gates
+                if (conflict_gates.empty())
+                {
+                    upper_bound = upper_bound - 1;
+                }
+                else
+                {
+                    sort(conflict_gates.begin(), conflict_gates.end(), greater<int>());
+                    upper_bound = conflict_gates[0];
+                }
             }
         }
     }
@@ -380,9 +437,11 @@ backtrack_level(
         return true;
     }
 
-    vector<set<int>> logical_graph = *query_graphs.begin();
 
     // Input: query graph q
+    vector<set<int>> logical_graph = *query_graphs.begin();
+
+    // Calculate size of logical island
     int logical_size = 0;
     for_each(logical_graph.begin(), logical_graph.end(), [&logical_size](set<int> s) {
         logical_size += s.size();
@@ -617,7 +676,6 @@ backtrack_level_helper(
                     failure_heuristic.second[current].insert(previous);
                 }
             }
-            return false;
         }
         // If parents
         else
@@ -670,7 +728,6 @@ backtrack_level_helper(
                         failure_heuristic.second[current].insert(previous);
                     }
                 }
-                return false;
             }
 
             set<int> new_frontier = frontier;
@@ -741,7 +798,6 @@ backtrack_level_helper(
                     failure_heuristic.second[current].insert(previous);
                 }
             }
-            return false;
         }
 
     }
@@ -767,6 +823,302 @@ backtrack_level_helper(
             failure_heuristic.second[previous].insert(previous);
         }
     }
+    return false;
+
+}
+
+static bool
+backtrack_level_optimal(
+    vector<vector<set<int>>> &query_graphs,
+    set<pair<int, int>> &couplings,
+    vector<int> &mapping,
+    set<int> &seen,
+    set<int> &mapped,
+    int num_physical_qubits,
+    int previous)
+{
+
+    if (query_graphs.empty())
+    {
+        return true;
+    }
+
+    // Input: query graph q
+    vector<set<int>> logical_graph = *query_graphs.begin();
+
+    // Calculate size of logical island
+    int logical_size = 0;
+    for_each(logical_graph.begin(), logical_graph.end(), [&logical_size](set<int> s) {
+        logical_size += s.size();
+    });
+
+    // Input: data graph G
+    vector<set<int>> physical_graph = create_data_graph(couplings, num_physical_qubits, mapped);
+
+    // Backtrack(q, q_D, CS, M)
+    vector<vector<set<int>>> next_level = query_graphs;
+    next_level.erase(next_level.begin());
+
+    if (logical_size == 1)
+    {
+
+        int logical_qubit = UNDEFINED_QUBIT;
+        for (unsigned int q = 0; q < logical_graph.size(); q++)
+        {
+            if (logical_graph[q].size() == 1)
+            {
+                logical_qubit = (int)q;
+                break;
+            }
+        }
+
+        if (logical_qubit == UNDEFINED_QUBIT)
+        {
+            // Should be impossible due to assertions when processsing the circuit
+            cerr << "Number of Logical Qubits is fewer than Number of Physical Qubits" << endl;
+            exit(1);
+        }
+
+        int physical_qubit = UNDEFINED_QUBIT;
+        for (int q = 0; q < num_physical_qubits; q++)
+        {
+            if (mapped.find(q) == mapped.end())
+            {
+                physical_qubit = q;
+                break;
+            }
+        }
+
+        if (physical_qubit == UNDEFINED_QUBIT)
+        {
+            return false;
+        }
+
+        seen.insert(logical_qubit);
+        mapped.insert(physical_qubit);
+        mapping[logical_qubit] = physical_qubit;
+
+        return backtrack_level_optimal(
+            next_level,
+            couplings,
+            mapping,
+            seen,
+            mapped,
+            num_physical_qubits,
+            logical_qubit);
+    }
+    else
+    {
+
+        // q_D <- BuildDAG(q, G)
+        pair<vector<set<int>>, pair<int, vector<set<int>>>> logical_dag_result = create_dag(
+            logical_graph,
+            physical_graph);
+        vector<set<int>> candidate_sets = logical_dag_result.first;
+        int dag_root = logical_dag_result.second.first;
+        vector<set<int>> logical_dag = logical_dag_result.second.second;
+
+        // CS <- BuildCS(q, q_D, G)
+        pair<vector<set<int>>, vector<set<int>>> candidate_space = create_candidate_space(
+            logical_graph,
+            candidate_sets,
+            logical_dag,
+            physical_graph);
+        vector<set<int>> candidate_edges = candidate_space.second;
+
+        // Parents
+        vector<set<int>> parents(logical_dag.size());
+        for (unsigned int v = 0; v < logical_dag.size(); v++)
+        {
+            for (int neighbor : logical_dag[v])
+            {
+                parents[neighbor].insert(v);
+            }
+        }
+
+        set<int> frontier{dag_root};
+        return backtrack_level_helper_optimal(
+            next_level,
+            couplings,
+            candidate_sets,
+            candidate_edges,
+            parents,
+            logical_dag,
+            mapping,
+            frontier,
+            seen,
+            mapped,
+            num_physical_qubits,
+            previous);
+    }
+}
+
+static bool
+backtrack_level_helper_optimal(
+    vector<vector<set<int>>> &query_graphs,
+    set<pair<int, int>> &couplings,
+    vector<set<int>> &candidate_sets,
+    vector<set<int>> &candidate_edges,
+    vector<set<int>> &parents,
+    vector<set<int>> &query_dag,
+    vector<int> &mapping,
+    set<int> &frontier,
+    set<int> &seen,
+    set<int> &mapped,
+    int num_physical_qubits,
+    int previous)
+{
+
+    // If frontier is empty
+    if (frontier.empty())
+    {
+        // If no more query graphs, success
+        if (query_graphs.empty())
+        {
+            return true;
+        }
+        // Otherwise, recursively call with new query graph
+        else
+        {
+            return backtrack_level_optimal(
+                query_graphs,
+                couplings,
+                mapping,
+                seen,
+                mapped,
+                num_physical_qubits,
+                previous);
+        }
+    }
+
+    // Currently ordered by int compare
+    for (int current : frontier)
+    {
+
+        // If no parents, aka root
+        if (parents[current].empty())
+        {
+            set<int> new_frontier = frontier;
+            new_frontier.erase(current);
+            for (int child : query_dag[current])
+            {
+                new_frontier.insert(child);
+            }
+
+            set<int> new_seen = seen;
+            new_seen.insert(current);
+
+            vector<int> new_mapping = mapping;
+
+            set<int> new_mapped = mapped;
+
+            for (int candidate : candidate_sets[current])
+            {
+                new_mapping[current] = candidate;
+                new_mapped.insert(candidate);
+
+                if (backtrack_level_helper_optimal(
+                        query_graphs,
+                        couplings,
+                        candidate_sets,
+                        candidate_edges,
+                        parents,
+                        query_dag,
+                        new_mapping,
+                        new_frontier,
+                        new_seen,
+                        new_mapped,
+                        num_physical_qubits,
+                        current))
+                {
+                    seen = new_seen;
+                    mapped = new_mapped;
+                    mapping = new_mapping;
+                    return true;
+                }
+
+                new_mapping[current] = UNDEFINED_QUBIT;
+                new_mapped.erase(candidate);
+            }
+        }
+        // If parents
+        else
+        {
+            // Extendable if parents are matched
+            if (any_of(parents[current].begin(), parents[current].end(),
+                       [&seen](int parent) { return seen.find(parent) == seen.end(); }))
+            {
+                continue;
+            }
+            // Candidates of current vertex =
+            //     Intersection of parents' mapped candidates' adjacency list
+            set<int> candidates_list;
+            for (int candidate : candidate_sets[current])
+            {
+                if (mapped.find(candidate) != mapped.end())
+                {
+                    continue;
+                }
+                if (all_of(parents[current].begin(), parents[current].end(),
+                           [&candidate_edges, &mapping, candidate](int parent) {
+                               return (candidate_edges[mapping[parent]].find(candidate) !=
+                                       candidate_edges[mapping[parent]].end());
+                           }))
+                {
+                    candidates_list.insert(candidate);
+                }
+            }
+
+            set<int> new_frontier = frontier;
+            new_frontier.erase(current);
+            for (int child : query_dag[current])
+            {
+                if (seen.find(child) == seen.end())
+                {
+                    new_frontier.insert(child);
+                }
+            }
+
+            set<int> new_seen = seen;
+            new_seen.insert(current);
+
+            vector<int> new_mapping = mapping;
+
+            set<int> new_mapped = mapped;
+
+            for (int candidate : candidates_list)
+            {
+                new_mapping[current] = candidate;
+                new_mapped.insert(candidate);
+
+                if (backtrack_level_helper_optimal(
+                        query_graphs,
+                        couplings,
+                        candidate_sets,
+                        candidate_edges,
+                        parents,
+                        query_dag,
+                        new_mapping,
+                        new_frontier,
+                        new_seen,
+                        new_mapped,
+                        num_physical_qubits,
+                        current))
+                {
+                    seen = new_seen;
+                    mapped = new_mapped;
+                    mapping = new_mapping;
+                    return true;
+                }
+
+                new_mapping[current] = UNDEFINED_QUBIT;
+                new_mapped.erase(candidate);
+            }
+
+        }
+
+    }
+
     return false;
 
 }

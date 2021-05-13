@@ -1,3 +1,9 @@
 [submodule "QUEKO-benchmark"]
 	path = QUEKO-benchmark
 	url = git@github.com:tbcdebug/QUEKO-benchmark.git
+[submodule "enfield"]
+	path = enfield
+	url = git@github.com:ysiraichi/enfield.git
+[submodule "jsoncpp"]
+	path = jsoncpp
+	url = git@github.com:open-source-parsers/jsoncpp.git

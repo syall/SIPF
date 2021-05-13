@@ -217,11 +217,3 @@ int latest_intersection(vector<vector<int>> live_ranges, pair<int, int> qubits, 
 
 	return upper_bound - 1;
 }
-
-void destroy_gates(vector<GateNode*> gates_circuit)
-{
-	for (unsigned int i = 0; i < gates_circuit.size(); i++)
-	{
-		delete gates_circuit[i];
-	}
-}

@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # Output Directory
-output=feedback/
+output=feedback-enfield/
 
 # feedback_circuits/circuit/*/(*).qasm Capture Regex
 qasmregex="./feedback_circuits/circuits/.*/(.*).qasm"
 
 # feedback_circuits/couplings/(*).txt Capture Regex
-txtregex="./feedback_circuits/couplings/(.*).txt"
+txtregex="./feedback_circuits/couplings/(.*).json"
 
-# Assertion Regex
-assertionregex="^mapper:"
+# Enfield
+efd="./enfield/build/tools/efd"
 
 # Hide excessive trap messages
 trap "" SIGABRT
@@ -20,14 +20,14 @@ mkdir -p $output
 
 # Make Record File
 record=$output/record.txt
-: > $record
+# : > $record
 
 # For every size category of QASM
 for size in ./feedback_circuits/circuits/*; do
     # For every QASM in the size category
     for circuitfile in $size/*.qasm; do
         # For every Coupling Graph
-        for couplingfile in ./feedback_circuits/couplings/*.txt; do
+        for couplingfile in ./feedback_circuits/couplings/*.json; do
             # Capture QASM name
             if [[ $circuitfile =~ $qasmregex ]]
             then
@@ -44,17 +44,14 @@ for size in ./feedback_circuits/circuits/*; do
             fi
             # Output to stdout
             echo "Testing $circuitname on $couplingname" | tee -a $record
-            # Run mapper on QASM and Coupling Graph to Output File
-            time (./mapper $circuitfile $couplingfile 2>&1) \
+            # Run efd on QASM and Coupling Graph to Record File
+            time ($efd -i $circuitfile -arch-file $couplingfile -stats 2>&1) \
                 1> $output/$circuitname--$couplingname.txt \
                 2>> $record
-            OUTPUT=`head -n 4 $output/$circuitname--$couplingname.txt`
-            if [[ $OUTPUT =~ $assertionregex ]]
-            then
-                echo "No Mappings Possible" >> $record
-            else
-                echo "$OUTPUT" >> $record
-            fi
+            CIRCUIT=`head -n -9 $output/$circuitname--$couplingname.txt`
+            STATS=`tail -n 9 $output/$circuitname--$couplingname.txt`
+            echo "$CIRCUIT" > $output/$circuitname--$couplingname.txt
+            echo "$STATS" >> $record
         done
     done
 done
