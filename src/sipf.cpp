@@ -388,9 +388,11 @@ backtrack_level(
         return true;
     }
 
-    vector<set<int>> logical_graph = *query_graphs.begin();
 
     // Input: query graph q
+    vector<set<int>> logical_graph = *query_graphs.begin();
+
+    // Calculate size of logical island
     int logical_size = 0;
     for_each(logical_graph.begin(), logical_graph.end(), [&logical_size](set<int> s) {
         logical_size += s.size();
@@ -625,7 +627,6 @@ backtrack_level_helper(
                     failure_heuristic.second[current].insert(previous);
                 }
             }
-            return false;
         }
         // If parents
         else
@@ -678,7 +679,6 @@ backtrack_level_helper(
                         failure_heuristic.second[current].insert(previous);
                     }
                 }
-                return false;
             }
 
             set<int> new_frontier = frontier;
@@ -749,7 +749,6 @@ backtrack_level_helper(
                     failure_heuristic.second[current].insert(previous);
                 }
             }
-            return false;
         }
 
     }
