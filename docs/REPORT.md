@@ -8,9 +8,9 @@ Professor Zhang
 
 5/12/2021
 
-Source Code: [https://github.com/syall/CS516-Project-1](https://github.com/syall/CS516-Project-1)
+Source Code: [https://github.com/syall/SIPF](https://github.com/syall/SIPF)
 
-Presentation: [https://github.com/syall/CS516-Project-1/blob/main/docs/PRESENTATION.mp4](https://github.com/syall/CS516-Project-1/blob/main/docs/PRESENTATION.mp4)
+Presentation: [https://youtu.be/-6RpNGGDgp4](https://youtu.be/-6RpNGGDgp4)
 
 ## Introduction
 
@@ -149,7 +149,7 @@ if |ISLAND| == 1:
     NEXT_ISLANDS, G, M,
     SEEN, MAPPED,
     Q, F)
-// If island only has more than one logical qubit
+// If island has more than one logical qubit
 else:
   (C'_DAG, CAND_SETS) ← Build a DAG from logical ISLAND
         - Build candidate sets CAND_SETS for the heuristic
@@ -298,7 +298,7 @@ As mentioned in the Algorithms Overview section, the compiler is implemented as 
 
 ### Circuit Parsing
 
-The circuit parsing was coded to read gates line by line in order, not using the given `QASMparser`. The reason is that although the layers produced are optimal, but the gates are also unordered. The preemptive parallel expanding of the gates by the parser made it so that swap gates inserted would not produce an equivalent circuit. The order of the gates by the parser would only work if no other gates were added since parallel layers and analysis had already been produced.
+The circuit parsing is coded to read gates line by line in order, not using the provided `QASMparser`. The reason is that although the layers produced are optimal, the gates are unordered within a layer. The parallel expanding of the gates by the parser made it so that swap gates inserted would not produce an equivalent circuit. The order of the gates by the parser would only work if no other gates were added since parallel layers and analysis had already been produced.
 
 ### Qubit Mapping
 
@@ -310,7 +310,7 @@ See the Algorithms CalculateSwaps section.
 
 ### Circuit Compiling
 
-The compilation was a simple substitution once the mappings and swaps were already produced. At the top of each file includes metadata in comments:
+The compilation is a simple substitution once the mappings and swaps are provided. At the top of each file includes metadata in comments:
 
 - `//Number of Swaps: #`
 - `//Number of Mappings: #`
@@ -369,14 +369,12 @@ Besides the compiler's own algorithm, the SIPF compiler is compared to the Enfie
   - simplified_bmt
   - simplified_ibmt
 
-The measurements can be found in the Appendix section, the depth, gates, real time (ms), and user + sys time (ms) for each compiler algorithm.
+The measurements can be found in the Appendix section for each compiler algorithm: the depth, gates, real time (ms), and user + sys time (ms).
 
-The SIPF optimal algorithm outperformed the SIPF default failure heuristic algorithm, obviously in depth and gates, but also in time. The phenomenon is probably due to the SIPF default algorithm producing more mappings, which means more chances of inserting swaps (although there are cases where neighboring mappings are equal and require no swaps).
-
-The SIPF optimal algorithm also performs much better in time, which is surprising due to the optimal algorithm definitely performing more SIPF algorithms per compilation. The gap between the algorithms could be due to:
+The SIPF optimal algorithm outperformed the SIPF default failure heuristic algorithm, obviously in depth and gates, but also in time. The performance difference is surprising due to the optimal algorithm definitely performing more SIPF algorithms per compilation. The gap between the algorithms could be due to:
 
 - SIPF being so fast that the extra iterations are negligible for the optimal algorithm
-- CalculateSwaps being so slow that the extra iterations for the default algorithm are noticeable
+- CalculateSwaps being so slow that the extra iterations due to extra mappings for the default algorithm are noticeable
 - The failure heuristic update operations are slow for the default algorithm
 
 The SIPF algorithms performed better in both depth and gates than the Enfield algorithms. The SIPF algorithms probably achieved this due to optimizing for larger maximal isomorphic sublists, a feature that BMT purposely limits due to the Enfield algorithms avoiding combinatorial explosion when incrementally building sublists.
@@ -388,9 +386,9 @@ For performance, the SIPF algorithms performed better than Enfield algorithms on
 
 ## Conclusion
 
-The SIPF algorithm is another way to frame the qubit allocation problem with subgraph isomorphism and token swapping, focusing on maximizing maximal isomorphic sublist size. Although the main innovation was to use the failure heuristic, the SIPF optimal algorithm performed better in both depth, the number of gates, and time. When compared to the Enfield algorithms, the SIPF algorithms performed better on average, but the SIPF algorithms performed much worse when circuits had many qubit conflicts.
+The SIPF algorithm is another way to frame the qubit allocation problem with subgraph isomorphism and token swapping, focusing on maximizing maximal isomorphic sublist size. Although the main innovation was to use the failure heuristic, the SIPF optimal algorithm performed better in both depth, the number of gates, and time. When compared to the Enfield algorithms, the SIPF algorithms performed better in terms of depth and gates. When considering time, on average the SIPF algorithms did better, but performed much worse when circuits had many qubit conflicts.
 
-For further work, the SIPF implementation is greedy and does not take into account different permutations of valid mappings for a range of gates. Searching through different mappings and swaps across an entire circuit could be done in the future, similar to the BMT algorithm \[1]. The token swapping algorithm can be improved since the CalculateSwaps algorithm is the bottleneck of performance for the compiler by doing a bounded depth-first heuristic search (there are no clear reference implementations for the token swapping algorithms available).
+For further work, the current SIPF implementation is greedy and does not take into account different permutations of valid mappings for a range of gates. Searching through different mappings and swaps across an entire circuit could be done in the future, similar to the BMT algorithm \[1]. The token swapping algorithm can be improved since the CalculateSwaps algorithm is the bottleneck of performance for the compiler by doing a bounded depth-first heuristic search (there are no clear reference implementations for the token swapping algorithms available).
 
 ## References
 
