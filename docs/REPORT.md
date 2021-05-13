@@ -1,4 +1,4 @@
-# Qubit Allocation as a combination Subgraph Isomorphism and Token Swapping Algorithm by Partitioning with a Failure Heuristic
+# Qubit Allocation as a combination of the Subgraph Isomorphism and Token Swapping Algorithms by Partitioning with a Failure Heuristic
 
 Steven Yuan
 
