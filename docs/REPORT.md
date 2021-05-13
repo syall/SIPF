@@ -1,4 +1,4 @@
-# Proposal: Qubit Allocation as a combination Subgraph Isomorphism and Token Swapping Algorithm by Partitioning with a Failure Heuristic
+# Qubit Allocation as a combination Subgraph Isomorphism and Token Swapping Algorithm by Partitioning with a Failure Heuristic
 
 Steven Yuan
 
@@ -9,6 +9,8 @@ Professor Zhang
 5/12/2021
 
 Source Code: [https://github.com/syall/CS516-Project-1](https://github.com/syall/CS516-Project-1)
+
+Presentation: [https://github.com/syall/CS516-Project-1/blob/main/docs/PRESENTATION.mp4](https://github.com/syall/CS516-Project-1/blob/main/docs/PRESENTATION.mp4)
 
 ## Introduction
 
@@ -27,7 +29,7 @@ The approach modifies existing research of framing the qubit allocation problem 
 
 ### Overview
 
-The algorithms used in the compiler follows a pipeline between different functions, but for algorithms related to qubit allocation, the algorithms covered will be SIPF for finding compatible logical qubit mappings across the circuit and CalculateSwaps for finding swaps between physical qubits to join consecutive logical qubit mappings. Other aspects omitted in this section can be found in the Implementation section.
+The algorithms used in the compiler follow a pipeline between different functions, but for algorithms related to qubit allocation, the algorithms covered will be SIPF for finding compatible logical qubit mappings across the circuit and CalculateSwaps for finding swaps between physical qubits to join consecutive logical qubit mappings. Other aspects omitted in this section can be found in the Implementation section.
 
 ```text
 Input: quantum circuit file C_file, coupling graph file G_file
@@ -54,15 +56,17 @@ return C_m
 
 ### SIPF
 
-SIPF is the framework that solves the subgraph isomorphism. Starting with a left and right indices of 0 and the size of the input quantum circuit, the algorithm repeatedly partitions the circuit using the indices.
+SIPF is the framework that solves the subgraph isomorphism. Starting with left and right indices of 0 and the size of the input quantum circuit, the algorithm repeatedly partitions the circuit using the indices.
 
 For a given range lower bound L and upper bound R, SIPF attempt to find a mapping for all of the gates in the range through the BacktrackLevel algorithm.
 
 - If a mapping is found, then the partition is added with L, R, and the mapping into the overall list of mapping partitions.
 - If a mapping is not found, the failure heuristic is used to find the latest gate of the earliest conflict qubits within the range L and R.
-- If there is no conflict qubits, then the upper bound R is simply decreased by 1, excluding one gate at a time.
+- If there are no conflict qubits, then the upper bound R is simply decreased by 1, excluding one gate at a time.
 
-Logical islands are needed in case logical qubits are completely disjoint, and are backtracked and evaluated in decreasing size order.
+Logical islands logical graphs, and are the units that are mapped per logical qubit mapping. Islands are produced in case logical qubits are completely disjoint, normally only a problem in benchmark circuits where the circuits are randomly generated. The islands are backtracked in decreasing size order, as larger islands are easier to fit with more unmapped physical qubits.
+
+Also, in evaluation, an optimal approach that does not use the failure heuristic is provided with the flag `-optimal`, decreasing the upper bound R by one gate at a time.
 
 ```text
 Input: coupling graph G, live ranges LR, quantum circuit gates C
@@ -113,11 +117,9 @@ return P
 
 #### BacktrackLevel
 
-TODO
-
 BacktrackLevel is a modified version of the DAF algorithm \[1] that finds mappings of the subcircuit logical relation graph in the coupling graph. For each logical island, BacktrackLevel is called so that all of the logical qubits in that island are mapped before the next island is mapped.
 
-If there is only one logical qubit in an island, the mapping is handled within BacktrackLevel before another recursive call to BacktrackLevel.
+If there is only one logical qubit in an island, the mapping is handled within BacktrackLevel before another recursive call to BacktrackLevel with the rest of the logical islands.
 
 ```text
 BacktrackLevel
@@ -137,6 +139,7 @@ G' ← Create Data Graph using G and MAPPED
 ISLAND = head(ISLANDS)
 NEXT_ISLANDS = tail(ISLANDS)
 
+// If island only has one logical qubit
 if |ISLAND| == 1:
   Map logical qubit Q to a physical qubit in mapping M
   - Update SEEN
@@ -146,6 +149,7 @@ if |ISLAND| == 1:
     NEXT_ISLANDS, G, M,
     SEEN, MAPPED,
     Q, F)
+// If island only has more than one logical qubit
 else:
   (C'_DAG, CAND_SETS) ← Build a DAG from logical ISLAND
         - Build candidate sets CAND_SETS for the heuristic
@@ -163,9 +167,9 @@ else:
     PREV, F)
 ```
 
-Otherwise, the logical island is searched for with BacktrackLevelHelper based on the DAF algorithm.
+For logical islands with more than one qubit, the logical island is searched with BacktrackLevelHelper based on the DAF algorithm.
 
-A directed acyclic graph (DAG) of the subcircuit is built using the minimum heuristic for a vertex v `|candidate set (v)| / degree(v)` to choose a root, aiming to have few candidates and large number of edges to fail early. The DAG is used to build and search a candidate space, finding physical qubit candidates for the logical qubits in the DAG.
+A directed acyclic graph (DAG) of the subcircuit is built using the minimum heuristic for a vertex v `|candidate set (v)| / degree(v)` to choose a root, aiming to have few candidates and a large number of edges to fail early. The DAG is used to build and search a candidate space, finding physical qubit candidates for the logical qubits in the DAG.
 
 If the search returns a complete mapping, then the upper bound and mapping are returned. Otherwise, the failure heuristic would be already updated with conflict qubit information.
 
@@ -200,6 +204,7 @@ for logical qubit Q in FRONT:
   - Update a NEW_MAPPED with a candidate
   - Update a NEW_MAPPING with Q mapped to a candidate
   - Update a NEW_FRONT with Q's neighbors
+  // Mapping Found
   if BacktrackLevelHelper with the updated state is true:
     SEEN = NEW_SEEN
     MAPPED = NEW_MAPPED
@@ -207,47 +212,85 @@ for logical qubit Q in FRONT:
     return true
   else:
     Update failure heuristic F
-    return false
+
+// No Mapping found
+return false
 ```
 
 #### Failure Heuristic
 
-TODO
+The failure heuristic is updated by recording the maximum size of a partial mapping and logical qubits that mapped to that size with the set of vertices that caused the logical qubit to fail, the conflict qubits.
 
-The failure heuristic is updated by recording the maximum size of a partial mapping and logical qubits that mapped to that size with the set of vertices that caused the logical qubit to fail.
+Specifically, the failure heuristic is updated each time an attempted mapping fails. In general, there are three cases:
 
-#### CalculateSwaps
+- The current mapping size is less than the failure heuristic maximum size, so there is no update.
+- The current mapping size is equal to the failure heuristic maximum size, so the current conflicting qubits are added to the conflict qubits
+- The current mapping size is greater than the failure heuristic maximum size, so the maximum size is updated, the conflict qubits are cleared, current conflicting qubits are added to the conflict qubits
 
-TODO
+When updating the bounds at the SIPF level, all conflicting qubit gates within the range of the lower bound L and the upper bound R are collected.
 
-TokenSwaps is an implementation of the colored token swapping problem, minimizing the swaps of colored tokens between adjacent colored vertices from an initial graph to a final graph.
+- If no conflicting gates exist, then decrease R by 1
+- Otherwise, set R to be the gate with the latest position in the circuit
+
+Essentially, by tracking which qubits were conflicted, the partition can be reduced by the latest gate between conflict qubits within a certain range instead of naively decreasing by one.
 
 ```text
-Input: previous mapping M_prev, current mapping M, coupling graph G
-Output: List of swaps S from M_prev to M
+Failure Heuristic:
+- Maximum Size mapped up to Conflict Qubits
+- Conflict Qubits are qubits that cause the mapping to fail
+```
 
-q_prop ← set ← M_prev logical qubits - M logical qubits
+### CalculateSwaps
 
-C ← cost matrix calculating minimum distance between each physical qubit in G
+CalculateSwaps is an implementation of the colored token swapping problem, minimizing the swaps of colored tokens between adjacent colored vertices from an initial graph to a final graph. In the algorithm, a list of swap gates is produced between each mapping using bounded depth-first heuristic search.
 
-S ← Search possible swaps recursively with M_prev, q_prop, C that decrease
-     distance between:
-     - logical qubit's physical qubit in M_prev to M
-     - logical qubit's physical in q_prop to empty qubit
+First, a distance matrix between all physical qubits in the coupling graph is produced using the Floyd Warshall Algorithm for solving the All Pairs Shortest Path problem, precalculating the cost.
+
+Then each pair of consecutive mappings is evaluated to produce the shortest distance cost. This cost is used to determine the first depth to search using the equation `DEPTH = COST / 2` as mentioned as the lower bound of the optimal number of swaps \[3].
+
+The bounded depth-first heuristic search is relatively simple, searching through swaps if:
+
+- The depth is not less than 0
+- The cost of the swap is lower or equal to the previous cost
+
+If a swap is explored the swap is probably a happy swap \[3], meaning that for both logical qubits exchanged, the swap was along a possible shortest path. More particularly, if the cost was equal, it means that the swap had no effect. However, during testing, without allowing equal-cost swaps, a reasonable swapping was not possible.
+
+One edge case for swaps is when there is no mapping for a logical qubit in the second of the mappings, meaning the value will need to be propagated later. In this case, the cost for the unknown logical qubit is the `number of physical qubits / 2`, the average path length from any qubit to another qubit. When set to any other number, the search is skewed to go depth-first which is not desirable. Due to this edge case, the cost function is not admissible, but is still fast and guaranteed to find an optimal number of swaps given the depth restriction.
+
+```text
+Input: partitions of mappings P, coupling graph G
+Output: List of List of swaps S between each mapping in P
+
+S ← List of List of swaps
+
+G' ← Create Data Graph using G and MAPPED
+
+DIST ← distance matrix between all physical qubits in G'
+
+for each pair of mappings M1 and M2 of P:
+  COST ← sum of all shortest distances between logical qubits positions in M1 and M2
+  LOCAL ← sequence of swaps
+  for DEPTH ← COST / 2, increase DEPTH by 1:
+    Recursively DFS all possible swaps up to DEPTH with LOCAL
+    if LOCAL is found:
+      Add LOCAL to S for M1 and M2
+      for every unmapped logical qubit Q in M2:
+        M2[Q] = propagate values from swaps done to M1
+      break
+    else:
+      LOCAL ← EMPTY
 
 Return S
 ```
 
-Starting from a previous mapping of logical to physical qubits and a current mapping, the goal is to find a set of minimum swaps related to size that change the previous mapping to the current mapping. First, the set of logical qubits that are in the previous mapping but not in the current mapping are kept in a set to propagate forward as a special case. Then, a cost matrix for minimum distances between vertices in the coupling graph G. Finally, the swaps are recursively searched with a heuristic that minimizes the distance between the logical qubits' physical qubits in previous and current mappings until the distance is 0, where logical qubits that are in both mappings are 0 once the swaps are reached and logical qubits to propagate are 0 once the logical qubit is mapped to an unused qubit in the current mapping.
-
 ## Implementation
 
-As mentioned in the Algorithms Overview section, the compiler is implemented as pipeline through different functions to produce a transformed circuit
+As mentioned in the Algorithms Overview section, the compiler is implemented as a pipeline through different functions to produce a transformed circuit
 
 - Circuit Parsing: Parsing the input circuit to produce the list of gates with live ranges
 - Qubit Mapping: Mapping logical qubits to physical qubits and different points in the circuit using the SIPF algorithm
 - Token Swapping: Calculating physical qubit swaps to move logical qubit positions between consecutive mappings using the CalculateSwaps algorithm
-- Circuit Compiling: Applying the compatible mappings of logical qubits and inserting swap gates between those mappings, while also calculating metadata about number of swaps, number of mappings, depth, and number of gates
+- Circuit Compiling: Applying the compatible mappings of logical qubits and inserting swap gates between those mappings, while also calculating metadata about the number of swaps, number of mappings, depth, and number of gates
 
 ### Architecture
 
@@ -255,64 +298,99 @@ As mentioned in the Algorithms Overview section, the compiler is implemented as 
 
 ### Circuit Parsing
 
-TODO
+The circuit parsing was coded to read gates line by line in order, not using the given `QASMparser`. The reason is that although the layers produced are optimal, but the gates are also unordered. The preemptive parallel expanding of the gates by the parser made it so that swap gates inserted would not produce an equivalent circuit. The order of the gates by the parser would only work if no other gates were added since parallel layers and analysis had already been produced.
 
 ### Qubit Mapping
 
-TODO
+See the Algorithms SIPF section.
 
 ### Token Swapping
 
-TODO
+See the Algorithms CalculateSwaps section.
 
 ### Circuit Compiling
 
-TODO
+The compilation was a simple substitution once the mappings and swaps were already produced. At the top of each file includes metadata in comments:
+
+- `//Number of Swaps: #`
+- `//Number of Mappings: #`
+- `//Depth: #`
+- `//Number of Gates: #`
+
+Whenever there is a new mapping, a comment for the initial mapping is produced: `//Location of qubits: q[0],q[1],...`.
+
+Also, before each series of swap gates, a comment is added for the number of swaps between mappings: `//Insert # Swap Gates`.
+
+The inserted swap gates are in the form `swp c, t`, manually defined in qelib1.inc as 3 CNOT gates. This is necessary when evaluating the depth and number of gates.
+
+```text
+// swap
+gate swp c,t
+{
+  // 3 CNOT gates
+  cx c, t;
+  cx t, c;
+  cx c, t;
+}
+```
+
+Although `QASMparser` was not used for parsing the circuit initially, the parser is used on the compiled circuit to calculate the metadata for depth and number of gates using a temporary file with the circuit as input.
 
 ## Evaluation
 
-TODO
+All benchmarks are run on the iLab machine `cheese.cs.rutgers.edu` under the username `sy533`, and are a combination of circuits and architectures as follows:
 
-All benchmarks are run on
+- Circuits:
+  - 3_17_13
+  - ex-1_166
+  - ham3_102
+  - or
+  - 4gt13_92
+  - 4mod5-v1_22
+  - alu-v0_27
+  - mod5mils_65
+  - qaoa5
+  - 16QBT_05CYC_TFL_0 (for aspen4 only)
+  - 16QBT_10CYC_TFL_3 (for aspen4 only)
+- Architectures:
+  - 2x3
+  - aspen4
+  - qx2
 
-SIPF Benchmarks:
+Besides the compiler's own algorithm, the SIPF compiler is compared to the Enfield Compiler's variations of the BMT algorithm \[2]:
 
-- Default
-- Optimal
+- SIPF Compiler:
+  - Default
+  - Optimal
+- Enfield Compiler:
+  - bmt
+  - ibmt
+  - opt_bmt
+  - simplified_bmt
+  - simplified_ibmt
 
-Enfield Benchmarks:
+The measurements can be found in the Appendix section, the depth, gates, real time (ms), and user + sys time (ms) for each compiler algorithm.
 
-- bmt
-- ibmt
-- opt_bmt
-- simplified_bmt
-- simplified_ibmt
+The SIPF optimal algorithm outperformed the SIPF default failure heuristic algorithm, obviously in depth and gates, but also in time. The phenomenon is probably due to the SIPF default algorithm producing more mappings, which means more chances of inserting swaps (although there are cases where neighboring mappings are equal and require no swaps).
 
-### Hypothesis
+The SIPF optimal algorithm also performs much better in time, which is surprising due to the optimal algorithm definitely performing more SIPF algorithms per compilation. The gap between the algorithms could be due to:
 
-Originally, my idea had been to blindly binary partition WeightedDAF using middle indices until a more optimal mapping could not be found. However, developing the failure heuristic which takes into account the latest gate of the earliest logical qubit relation conflicts provides an upper bound which always decreases the partition. My hypothesis is that this will decrease the number of searches to find a complete mapping by pruning off the gates that conflict later in the circuit.
+- SIPF being so fast that the extra iterations are negligible for the optimal algorithm
+- CalculateSwaps being so slow that the extra iterations for the default algorithm are noticeable
+- The failure heuristic update operations are slow for the default algorithm
 
-Another hypothesis is that the SIPF algorithm will probably work fastest on circuits with large maximal partitions, as less partitions would need to be produced. Because of this, I believe that the solution will run faster for large coupling graphs with many adjacent physical qubits, as the chances of having a relation between physical qubits that fit the logical qubit requirements is more likely. On the other hand, circuits that require many swaps will probably be slower to allocate due to the number of searches increasing.
+The SIPF algorithms performed better in both depth and gates than the Enfield algorithms. The SIPF algorithms probably achieved this due to optimizing for larger maximal isomorphic sublists, a feature that BMT purposely limits due to the Enfield algorithms avoiding combinatorial explosion when incrementally building sublists.
 
-### Pros
+For performance, the SIPF algorithms performed better than Enfield algorithms on average, but in different extreme cases, both SIPF and Enfield algorithms are better than each other.
 
-In the BMT algorithm \[2], the search had to be bound for maximal subgraph isomorphic sublists due to the combinatorial complexity of incrementally building the lists with each additional control relation. In contrast, the SIPF algorithm focuses on whether a set of gates (effectively control relations) has a complete mapping at one time, then using the failure heuristic to search the next subset. The combinatorial explosion of mappings in the BMT algorithm is avoided in SIPF by searching recursively from a possible maximal sublist with the failure heuristic which decreases the search space each iteration as opposed to increasing the search space.
-
-In addition, the use of the DAF algorithm \[1] is a faster subgraph isomorphism algorithm that performs polynomial-time operations to prune the search space before searching and search-time filtering and ordering, which is an improvement over the recursive partitioning of control relations with no meaninful heuristics.
-
-### Cons
-
-For circuits that have small maximal partitions, the SIPF algorithm may be slower than the BMT algorithm \[2] in that the search may become equivalent to decrementing per gate, essentially the reverse of BMT with a more expensive algoritm DAF. The benefits of recursively incrementing is that the following search is fast although there are many choices, but SIPF would be slow in that a complete subgraph, graph, and candidate space is calculated per search.
-
-Algorithms that frame qubit allocation as a combination of subgraph isomorphism and token swapping focus on optimizing the number of gates added with maximal partitions. However, the approach does not guarantee depth optimality, as inserting SWAP gates in partitions may not be the most efficient when taking parallelism into account. Even if the gates are optimal within partitions, the overall circuit may not be optimal.
-
-## Related Work
-
-TODO
+- The Enfield algorithms' complexity and time scales with the number of logical qubits in a circuit to build out mappings, so benchmarks such as 16QBT_05CYC_TFL_0 and 16QBT_10CYC_TFL_3 take magnitudes longer than simpler circuits.
+- The SIPF algorithms' complexity and time scales with the number of conflicting gates: more conflicts means more mappings and swappings. So, benchmarks such as 4gt13_92, 4mod5-v1_22, and alu-v0_27 take magnitudes longer than "smoother" circuits.
 
 ## Conclusion
 
-TODO
+The SIPF algorithm is another way to frame the qubit allocation problem with subgraph isomorphism and token swapping, focusing on maximizing maximal isomorphic sublist size. Although the main innovation was to use the failure heuristic, the SIPF optimal algorithm performed better in both depth, the number of gates, and time. When compared to the Enfield algorithms, the SIPF algorithms performed better on average, but the SIPF algorithms performed much worse when circuits had many qubit conflicts.
+
+For further work, the SIPF implementation is greedy and does not take into account different permutations of valid mappings for a range of gates. Searching through different mappings and swaps across an entire circuit could be done in the future, similar to the BMT algorithm \[1]. The token swapping algorithm can be improved since the CalculateSwaps algorithm is the bottleneck of performance for the compiler by doing a bounded depth-first heuristic search (there are no clear reference implementations for the token swapping algorithms available).
 
 ## References
 
