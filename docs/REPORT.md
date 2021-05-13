@@ -8,6 +8,8 @@ Professor Zhang
 
 5/12/2021
 
+Source Code: [https://github.com/syall/CS516-Project-1](https://github.com/syall/CS516-Project-1)
+
 ## Introduction
 
 Qubit allocation for quantum circuits on hardware has been an open research problem with the onset of normalizing quantum compiler methods. The problem is modeled as the qubit mapping problem, where the input is a quantum circuit with quantum logical gates and a coupling graph defining the quantum hardware qubit relationships, and the output is an initial mapping of logical qubits to physical qubits and a modified quantum circuit. Common assumptions of the qubit mapping problem are that coupling graphs are undirected between qubits, and SWAP gates are inserted to resolve logical and physical relations.
@@ -21,104 +23,206 @@ Output: initial mapping of qubits M and modified quantum circuit C_f
 
 The approach modifies existing research of framing the qubit allocation problem as a combination of subgraph isomorphism and token swapping \[2]. The proposed algorithm named subgraph isomorphism partitioning with failing heuristic (SIPF) partitions maximal isomorphic sublists instead of incrementally building them, navigating the decreasing potential partitions with a failure heuristic.
 
-## The Algorithm
+## Algorithms
+
+### Overview
+
+The algorithms used in the compiler follows a pipeline between different functions, but for algorithms related to qubit allocation, the algorithms covered will be SIPF for finding compatible logical qubit mappings across the circuit and CalculateSwaps for finding swaps between physical qubits to join consecutive logical qubit mappings. Other aspects omitted in this section can be found in the Implementation section.
+
+```text
+Input: quantum circuit file C_file, coupling graph file G_file
+Output: modified quantum circuit C_m
+
+// Preprocess Circuit
+(LR ← live ranges, C ← quantum circuit gates) ← PreprocessCircuit()
+
+// Build Coupling Graph
+G ← BuildCouplingMap
+
+// Produce Mappings
+P ← partitions of range and mapping pairs ← SIPF(G, LR, C)
+
+// Calculate Swaps
+S ← physical qubit swaps between mappings ← CalculateSwaps(P, G)
+
+// Compile Circuit
+C_m ← modified quantum circuit C_m ← CompileCircuit(C_file, P, S, C, G)
+
+// Output Circuit
+return C_m
+```
+
+### SIPF
+
+SIPF is the framework that solves the subgraph isomorphism. Starting with a left and right indices of 0 and the size of the input quantum circuit, the algorithm repeatedly partitions the circuit using the indices.
+
+For a given range lower bound L and upper bound R, SIPF attempt to find a mapping for all of the gates in the range through the BacktrackLevel algorithm.
+
+- If a mapping is found, then the partition is added with L, R, and the mapping into the overall list of mapping partitions.
+- If a mapping is not found, the failure heuristic is used to find the latest gate of the earliest conflict qubits within the range L and R.
+- If there is no conflict qubits, then the upper bound R is simply decreased by 1, excluding one gate at a time.
+
+Logical islands are needed in case logical qubits are completely disjoint, and are backtracked and evaluated in decreasing size order.
+
+```text
+Input: coupling graph G, live ranges LR, quantum circuit gates C
+Output: mapping partitions P
+
+MAX ← maximum upper bound ← size(C)
+L ← left index ← 0
+R ← right index ← MAX
+
+P ← partitions of (lower bound, upper bound, mapping) ← []
+while L < R:
+
+  // Sub Circuit
+  C_sub ← subcircuit with gates L to R right exclusive
+
+  // Logical Relationship Islands
+  ISLANDS ← Build isolated logical graphs based on logical relations
+
+  // Failure Heuristic
+  F ← failure heuristic
+      - Maximum failed size
+      - Conflict qubits at Maximum failed size
+
+  // Mapping
+  M ← mapping[logical → physical] ← EMPTY
+
+  // Set of mapped logical qubits
+  SEEN ← set[logical] ← EMPTY
+
+  // Set of mapped physical qubits
+  MAPPED ← set[physical] ← EMPTY
+
+  // Backtrack Level (Island)
+  BacktrackLevel(ISLANDS, G, M, SEEN, MAPPED, F)
+  if mapping is found:
+    // Add partition
+    P ← [P, (L, R, M)]
+    // Update Bounds
+    L = R
+    R = MAX
+  else if no conflict gates found in failure heuristic:
+    R = R - 1
+  else:
+    R = Index of Latest Gate of the Earliest Conflict Qubits between L and R
+
+return P
+```
+
+#### BacktrackLevel
 
 TODO
 
-The SIPF algorithm uses WeightedDAF and TokenSwaps and are detailed in three algorithms:
+BacktrackLevel is a modified version of the DAF algorithm \[1] that finds mappings of the subcircuit logical relation graph in the coupling graph. For each logical island, BacktrackLevel is called so that all of the logical qubits in that island are mapped before the next island is mapped.
 
-- Algorithm 1: SIPF
-- Algorithm 2: WeightedDAF
-- Algorithm 3: TokenSwaps
-
-### Algorithm 1: SIPF
-
-SIPF is the framework that combines the subgraph isomorphism and token swapping algorithms. Starting with a left and right indices of 0 and the size of the input quantum circuit, WeightedDAF repeatedly partitions the circuit using the indices. Then, once the partitions have been made, each pair of partitions is joined through TokenSwaps. Finally, the algorithm returns the initial mapping of the first partition and the modified circuit.
+If there is only one logical qubit in an island, the mapping is handled within BacktrackLevel before another recursive call to BacktrackLevel.
 
 ```text
-Algorithm 1: SIPF
+BacktrackLevel
+Input:
+  logical graphs ISLANDS, coupling graph G, mapping M,
+  mapped logical qubits SEEN, mapped physical qubits MAPPED,
+  previous logical qubit PREV, failure heuristic F
+Output: whether a mapping was found, and updating mapping M and failure heuristic F
 
-Input: quantum circuit C, coupling graph G
-Output: initial mapping of qubits M_i and modified quantum circuit C_m
+// Base case: no logical graphs to map
+if ISLANDS is EMPTY:
+  return true
 
-L ← left index ← 0
-R ← right index ← size(C)
+G' ← Create Data Graph using G and MAPPED
 
-P ← partitions ← []
-while L ≠ R:
-  (B ← upper bound, M ← mapping[logical → physical]) ← WeightedDAF(C, G, L, R)
-  P ← [P, (L, B, M)]
-  L ← B
+// Get head and tail of ISLANDS
+ISLAND = head(ISLANDS)
+NEXT_ISLANDS = tail(ISLANDS)
 
-p_prev ← previous partition ← head(P)
-M_i ← mapping[logical → physical] M of p_prev
-
-C_m ← [C_m, ∀g∈C L of p_prev ≤ index(g) < B of p_prev]
-for p of tail(P):
-  C_m ← [C_m, TokenSwaps(M of p_prev, M of p, G)]
-  C_m ← [C_m, ∀g∈C L of p ≤ index(g) < B of p]
-  p_prev ← p
-
-Return M_i, C_m
+if |ISLAND| == 1:
+  Map logical qubit Q to a physical qubit in mapping M
+  - Update SEEN
+  - Update MAPPED
+  - Update F
+  return BacktrackLevel(
+    NEXT_ISLANDS, G, M,
+    SEEN, MAPPED,
+    Q, F)
+else:
+  (C'_DAG, CAND_SETS) ← Build a DAG from logical ISLAND
+        - Build candidate sets CAND_SETS for the heuristic
+        - Use heuristic |candidate set(v)| / degree(v) to choose root vertex
+  (CS, CAND_EDGES) ← Build a candidate space using ISLAND, CAND_SETS, C'_DAG, and G'
+        - Find physical qubit candidates for logical qubits using degrees
+        - Build candidate edges CAND_EDGES while traversing the space
+  P ← Calculate set of Parents for each logical qubit in C'_DAG
+  FRONT ← frontier of which qubits to search ← Root Node of C'_DAG
+  return BacktrackLevelHelper(
+    NEXT_ISLANDS, G,
+    CAND_SETS, CAND_EDGES,
+    P, C'_DAG, M,
+    FRONT, SEEN, MAPPED,
+    PREV, F)
 ```
 
-### Algorithm 2: WeightedDAF
+Otherwise, the logical island is searched for with BacktrackLevelHelper based on the DAF algorithm.
 
-WeightedDAF is a modified version of the DAF algorithm \[1] that finds mappings of the subcircuit logical relation graph in the coupling graph.
+A directed acyclic graph (DAG) of the subcircuit is built using the minimum heuristic for a vertex v `|candidate set (v)| / degree(v)` to choose a root, aiming to have few candidates and large number of edges to fail early. The DAG is used to build and search a candidate space, finding physical qubit candidates for the logical qubits in the DAG.
+
+If the search returns a complete mapping, then the upper bound and mapping are returned. Otherwise, the failure heuristic would be already updated with conflict qubit information.
+
+Unlike the DAF algorithm, BacktrackLevelHelper is much simpler as it omits features. The search does not use adaptive matching ordering with minimizing candidate-size and path-size heuristics to search smaller branches first. Also, pruning is not done by keeping track of fail sets to avoid redundant sibling searches for vertices that are not the source of the logical relation conflict. However, this is more of an implementation detail, as having these features incorporated would only affect the performance of the algorithm, not the functionality.
 
 ```text
-Algorithm 2: WeightedDAF
+BacktrackLevelHelper
+Input:
+  logical graphs ISLANDS, coupling graph G,
+  candidate sets CAND_SETS, candidate edges CAND_EDGES,
+  parents P, logical DAG C_DAG, mapping M,
+  frontier FRONT, mapped logical qubits SEEN, mapped physical qubits MAPPED,
+  previous logical qubit PREV, failure heuristic F
+Output: whether a mapping was found, and updating mapping M and failure heuristic F
 
-Input: quantum circuit C, coupling graph G, left index L, right index R
-Output: upper bound B and maximal isomorphic sublist mapping M
+// Base case:
+if FRONT is EMPTY:
+  // No Islands to Map
+  if ISLANDS is EMPTY:
+    return true
+  // Map rest of the islands
+  else:
+    return BacktrackLevel(
+      ISLANDS, G, M,
+      SEEN, MAPPED,
+      Q, F)
 
-C' ← ∀g∈C L ≤ index(g) < R
-
-C'_live ← live ranges of logical qubits
-
-C'_DAG ← Build a DAG from gates in C' based on logical relations
-          - Use heuristic |candidate set(v)| / degree(v) to choose root vertex
-
-CS ← Build a candidate space using C', C'_DAG, and G
-      - Find physical qubit candidates for logical qubits using degrees
-      - Filter CS with C'_DAG and C'_DAG^-1
-
-H ← Failure heuristic ← (0, mapping[logical → set[logical]] ← EMPTY)
-
-B ← upper bound B ← R
-
-M ← mapping[logical → physical] ← EMPTY
-
-H, M ← Backtrack recursively in the CS using C', C'_DAG, CS, M
-        - Adaptive Match Ordering with Candidate-Size and Path-Size Heuristics
-        - Pruning by Fail Sets
-        - Keep track of maximum H and failing vertices for each partial mapping
-
-if M is not a complete mapping:
-  for q_l of logical qubits of H:
-    for q_c of conflict qubits of q_l:
-      I ← index of last gate between q_l and q_c using C'_live
-      B ← minimum(B, I)
-  B, M ← WeightedDAF(C, G, L, B)
-
-Return B, M
+for logical qubit Q in FRONT:
+  Try to map Q to any of the physical qubit candidates
+    iff parents logical qubits are already mapped (extensible)
+  - Update a NEW_SEEN with Q
+  - Update a NEW_MAPPED with a candidate
+  - Update a NEW_MAPPING with Q mapped to a candidate
+  - Update a NEW_FRONT with Q's neighbors
+  if BacktrackLevelHelper with the updated state is true:
+    SEEN = NEW_SEEN
+    MAPPED = NEW_MAPPED
+    M = NEW_MAPPING
+    return true
+  else:
+    Update failure heuristic F
+    return false
 ```
 
-Starting with the quantum circuit and left and right indices, a subcircuit is formed from the gates between those indices right exclusive. Then, the live range of the logical qubits in the subcircuit is calculated for later use in the failure heuristic.
+#### Failure Heuristic
 
-A directed acyclic graph (DAG) of the subcircuit is built using the minimum heuristic for a vertex v `|candidate set (v)| / degree(v)` to choose a root, aiming to have few candidates and large number of edges to fail early. The DAG is used to build a candidate space, finding physical qubit candidates for the logical qubits in the DAG, then filtered overestimated candidates using the DAG and inverse DAG.
+TODO
 
-The candidate space is searched with recursive backtracking. The search uses adaptive matching ordering with minimizing candidate-size and path-size heuristics to search smaller branches first. Also, pruning is done by keeping track of fail sets to avoid redundant sibling searches for vertices that are not the source of the logical relation conflict. The failure heuristic is updated by recording the maximum size of a partial mapping and logical qubits that mapped to that size with the set of vertices that caused the logical qubit to fail.
+The failure heuristic is updated by recording the maximum size of a partial mapping and logical qubits that mapped to that size with the set of vertices that caused the logical qubit to fail.
 
-Finally, if the search returns a complete mapping, then the upper bound and mapping are returned. Otherwise, a recursive WeightedDAF is called with an upper bound based on the failure heuristic, using the smallest index of the latest gates between the failed logical qubit and their conflict qubits, ensuring that the earliest logical qubit relation conflict is searched from its latest gate.
+#### CalculateSwaps
 
-### Algorithm 3: TokenSwaps
+TODO
 
 TokenSwaps is an implementation of the colored token swapping problem, minimizing the swaps of colored tokens between adjacent colored vertices from an initial graph to a final graph.
 
 ```text
-Algorithm 3: TokenSwaps
-
 Input: previous mapping M_prev, current mapping M, coupling graph G
 Output: List of swaps S from M_prev to M
 
@@ -138,13 +242,51 @@ Starting from a previous mapping of logical to physical qubits and a current map
 
 ## Implementation
 
+As mentioned in the Algorithms Overview section, the compiler is implemented as pipeline through different functions to produce a transformed circuit
+
+- Circuit Parsing: Parsing the input circuit to produce the list of gates with live ranges
+- Qubit Mapping: Mapping logical qubits to physical qubits and different points in the circuit using the SIPF algorithm
+- Token Swapping: Calculating physical qubit swaps to move logical qubit positions between consecutive mappings using the CalculateSwaps algorithm
+- Circuit Compiling: Applying the compatible mappings of logical qubits and inserting swap gates between those mappings, while also calculating metadata about number of swaps, number of mappings, depth, and number of gates
+
+### Architecture
+
+![Architecture](./assets/architecture.png)
+
+### Circuit Parsing
+
+TODO
+
+### Qubit Mapping
+
+TODO
+
+### Token Swapping
+
+TODO
+
+### Circuit Compiling
+
 TODO
 
 ## Evaluation
 
 TODO
 
-Enfield default allocator Q_dynprog could not run on iLab due to exceeding user memory limit.
+All benchmarks are run on
+
+SIPF Benchmarks:
+
+- Default
+- Optimal
+
+Enfield Benchmarks:
+
+- bmt
+- ibmt
+- opt_bmt
+- simplified_bmt
+- simplified_ibmt
 
 ### Hypothesis
 
@@ -180,73 +322,73 @@ TODO
 
 ## Appendix
 
-### Default SIPF Benchmarks
+### SIPF Default Benchmarks
 
 |Circuit--Architecture    |Depth|Gates|Real Time (ms)|User + Sys Time (ms)|
 |-------------------------|-----|-----|--------------|--------------------|
-|3_17_13--2x3             |55   |69   |16            |10                  |
-|3_17_13--aspen4          |77   |105  |21            |17                  |
-|3_17_13--qx2             |22   |36   |11            |8                   |
-|ex-1_166--2x3            |34   |40   |12            |8                   |
-|ex-1_166--aspen4         |50   |67   |14            |11                  |
-|ex-1_166--qx2            |12   |19   |10            |7                   |
-|ham3_102--2x3            |38   |44   |14            |10                  |
-|ham3_102--aspen4         |54   |71   |18            |14                  |
-|ham3_102--qx2            |13   |20   |12            |7                   |
-|or--2x3                  |27   |35   |12            |8                   |
-|or--aspen4               |67   |83   |16            |12                  |
-|or--qx2                  |8    |17   |12            |7                   |
-|4gt13_92--2x3            |149  |204  |67            |63                  |
-|4gt13_92--aspen4         |175  |252  |2237          |2232                |
-|4gt13_92--qx2            |38   |66   |6             |2                   |
-|4mod5-v1_22--2x3         |27   |42   |7             |2                   |
-|4mod5-v1_22--aspen4      |36   |51   |80            |76                  |
-|4mod5-v1_22--qx2         |24   |36   |8             |4                   |
-|alu-v0_27--2x3           |63   |99   |8             |4                   |
-|alu-v0_27--aspen4        |107  |141  |3402          |3396                |
-|alu-v0_27--qx2           |27   |45   |8             |4                   |
-|mod5mils_65--2x3         |76   |110  |16            |11                  |
-|mod5mils_65--aspen4      |92   |140  |36            |31                  |
-|mod5mils_65--qx2         |36   |50   |18            |12                  |
-|qaoa5--2x3               |14   |22   |11            |6                   |
-|qaoa5--aspen4            |14   |22   |10            |6                   |
-|qaoa5--qx2               |14   |22   |10            |5                   |
-|16QBT_05CYC_TFL_0--aspen4|5    |37   |10            |6                   |
-|16QBT_10CYC_TFL_3--aspen4|10   |73   |11            |7                   |
-
-### Optimal SIPF Benchmarks
-
-|Circuit--Architecture    |Depth|Gates|Real Time (ms)|User + Sys Time (ms)|
-|-------------------------|-----|-----|--------------|--------------------|
-|3_17_13--2x3             |43   |57   |17            |12                  |
-|3_17_13--aspen4          |43   |57   |26            |21                  |
+|3_17_13--2x3             |49   |63   |17            |12                  |
+|3_17_13--aspen4          |60   |81   |24            |20                  |
 |3_17_13--qx2             |22   |36   |12            |8                   |
-|ex-1_166--2x3            |24   |31   |13            |9                   |
-|ex-1_166--aspen4         |24   |31   |17            |13                  |
-|ex-1_166--qx2            |12   |19   |7             |4                   |
-|ham3_102--2x3            |25   |32   |6             |3                   |
-|ham3_102--aspen4         |25   |32   |7             |3                   |
-|ham3_102--qx2            |13   |20   |5             |2                   |
-|or--2x3                  |17   |26   |6             |2                   |
-|or--aspen4               |23   |35   |6             |3                   |
-|or--qx2                  |8    |17   |5             |2                   |
-|4gt13_92--2x3            |103  |159  |13            |9                   |
-|4gt13_92--aspen4         |122  |192  |124           |119                 |
+|ex-1_166--2x3            |28   |34   |13            |9                   |
+|ex-1_166--aspen4         |33   |43   |16            |12                  |
+|ex-1_166--qx2            |12   |19   |12            |8                   |
+|ham3_102--2x3            |32   |38   |14            |10                  |
+|ham3_102--aspen4         |37   |47   |18            |14                  |
+|ham3_102--qx2            |13   |20   |12            |8                   |
+|or--2x3                  |27   |35   |12            |8                   |
+|or--aspen4               |39   |53   |15            |10                  |
+|or--qx2                  |8    |17   |12            |7                   |
+|4gt13_92--2x3            |129  |180  |66            |62                  |
+|4gt13_92--aspen4         |141  |228  |2283          |2279                |
 |4gt13_92--qx2            |38   |66   |6             |2                   |
-|4mod5-v1_22--2x3         |27   |42   |7             |2                   |
-|4mod5-v1_22--aspen4      |36   |51   |86            |81                  |
-|4mod5-v1_22--qx2         |24   |36   |8             |4                   |
-|alu-v0_27--2x3           |55   |87   |30            |26                  |
-|alu-v0_27--aspen4        |79   |108  |3339          |3330                |
-|alu-v0_27--qx2           |28   |45   |7             |2                   |
+|4mod5-v1_22--2x3         |27   |42   |7             |3                   |
+|4mod5-v1_22--aspen4      |36   |51   |82            |78                  |
+|4mod5-v1_22--qx2         |24   |36   |7             |4                   |
+|alu-v0_27--2x3           |55   |87   |11            |7                   |
+|alu-v0_27--aspen4        |79   |108  |3390          |3386                |
+|alu-v0_27--qx2           |28   |45   |6             |2                   |
 |mod5mils_65--2x3         |45   |62   |8             |4                   |
-|mod5mils_65--aspen4      |42   |62   |11            |6                   |
-|mod5mils_65--qx2         |36   |50   |10            |6                   |
-|qaoa5--2x3               |14   |22   |10            |6                   |
-|qaoa5--aspen4            |14   |22   |10            |6                   |
-|qaoa5--qx2               |14   |22   |9             |5                   |
+|mod5mils_65--aspen4      |42   |62   |10            |7                   |
+|mod5mils_65--qx2         |36   |50   |9             |5                   |
+|qaoa5--2x3               |14   |22   |6             |2                   |
+|qaoa5--aspen4            |14   |22   |8             |4                   |
+|qaoa5--qx2               |14   |22   |10            |5                   |
 |16QBT_05CYC_TFL_0--aspen4|5    |37   |11            |7                   |
-|16QBT_10CYC_TFL_3--aspen4|10   |73   |13            |8                   |
+|16QBT_10CYC_TFL_3--aspen4|10   |73   |17            |12                  |
+
+### SIPF Optimal Benchmarks
+
+|Circuit--Architecture    |Depth|Gates|Real Time (ms)|User + Sys Time (ms)|
+|-------------------------|-----|-----|--------------|--------------------|
+|3_17_13--2x3             |43   |57   |10            |6                   |
+|3_17_13--aspen4          |43   |57   |12            |9                   |
+|3_17_13--qx2             |22   |36   |5             |2                   |
+|ex-1_166--2x3            |24   |31   |5             |3                   |
+|ex-1_166--aspen4         |24   |31   |7             |3                   |
+|ex-1_166--qx2            |12   |19   |5             |2                   |
+|ham3_102--2x3            |25   |32   |5             |3                   |
+|ham3_102--aspen4         |25   |32   |6             |4                   |
+|ham3_102--qx2            |13   |20   |5             |2                   |
+|or--2x3                  |17   |26   |5             |2                   |
+|or--aspen4               |23   |35   |5             |3                   |
+|or--qx2                  |8    |17   |5             |2                   |
+|4gt13_92--2x3            |103  |159  |13            |10                  |
+|4gt13_92--aspen4         |122  |192  |126           |122                 |
+|4gt13_92--qx2            |38   |66   |6             |2                   |
+|4mod5-v1_22--2x3         |27   |42   |14            |11                  |
+|4mod5-v1_22--aspen4      |36   |51   |113           |108                 |
+|4mod5-v1_22--qx2         |24   |36   |7             |4                   |
+|alu-v0_27--2x3           |55   |87   |11            |7                   |
+|alu-v0_27--aspen4        |79   |108  |3358          |3353                |
+|alu-v0_27--qx2           |28   |45   |6             |3                   |
+|mod5mils_65--2x3         |45   |62   |8             |4                   |
+|mod5mils_65--aspen4      |42   |62   |11            |7                   |
+|mod5mils_65--qx2         |36   |50   |10            |6                   |
+|qaoa5--2x3               |14   |22   |7             |3                   |
+|qaoa5--aspen4            |14   |22   |7             |4                   |
+|qaoa5--qx2               |14   |22   |6             |2                   |
+|16QBT_05CYC_TFL_0--aspen4|5    |37   |8             |4                   |
+|16QBT_10CYC_TFL_3--aspen4|10   |73   |17            |13                  |
 
 ### Enfield bmt Benchmarks
 
@@ -350,7 +492,6 @@ TODO
 |16QBT_05CYC_TFL_0--aspen4|5    |37   |5447          |5439                |
 |16QBT_10CYC_TFL_3--aspen4|16   |97   |3469          |3461                |
 
-
 ### Enfield simplified_bmt Benchmarks
 
 |Circuit--Architecture    |Depth|Gates|Real Time (ms)|User + Sys Time (ms)|
@@ -384,7 +525,6 @@ TODO
 |qaoa5--qx2               |14   |22   |32            |24                  |
 |16QBT_05CYC_TFL_0--aspen4|5    |37   |21235         |21227               |
 |16QBT_10CYC_TFL_3--aspen4|16   |97   |9535          |9526                |
-
 
 ### Enfield simplified_ibmt Benchmarks
 
