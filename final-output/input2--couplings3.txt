@@ -1,0 +1,1 @@
+mapper: src/main.cpp:72: int main(int, char**): Assertion `num_physical_qubits >= num_logical_qubits' failed.

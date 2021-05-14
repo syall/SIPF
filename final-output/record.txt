@@ -1,0 +1,77 @@
+Testing input1 on couplings1
+
+real	0m0.012s
+user	0m0.000s
+sys	0m0.008s
+//Number of Swaps: 3
+//Number of Mappings: 2
+//Depth: 28
+//Number of Gates: 36
+Testing input1 on couplings2
+
+real	0m0.015s
+user	0m0.011s
+sys	0m0.001s
+//Number of Swaps: 7
+//Number of Mappings: 5
+//Depth: 37
+//Number of Gates: 48
+Testing input1 on couplings3
+
+real	0m0.013s
+user	0m0.009s
+sys	0m0.000s
+//Number of Swaps: 7
+//Number of Mappings: 5
+//Depth: 37
+//Number of Gates: 48
+Testing input2 on couplings1
+Aborted
+
+real	0m0.006s
+user	0m0.004s
+sys	0m0.000s
+No Mappings Possible
+Testing input2 on couplings2
+
+real	2m25.363s
+user	2m25.199s
+sys	0m0.044s
+//Number of Swaps: 44
+//Number of Mappings: 8
+//Depth: 98
+//Number of Gates: 160
+Testing input2 on couplings3
+Aborted
+
+real	0m0.003s
+user	0m0.001s
+sys	0m0.000s
+No Mappings Possible
+Testing input3 on couplings1
+
+real	0m0.010s
+user	0m0.005s
+sys	0m0.000s
+//Number of Swaps: 3
+//Number of Mappings: 2
+//Depth: 11
+//Number of Gates: 15
+Testing input3 on couplings2
+
+real	0m0.010s
+user	0m0.000s
+sys	0m0.006s
+//Number of Swaps: 6
+//Number of Mappings: 3
+//Depth: 19
+//Number of Gates: 24
+Testing input3 on couplings3
+
+real	0m0.010s
+user	0m0.006s
+sys	0m0.000s
+//Number of Swaps: 6
+//Number of Mappings: 3
+//Depth: 19
+//Number of Gates: 24

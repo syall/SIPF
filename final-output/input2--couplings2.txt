@@ -1,0 +1,95 @@
+//Number of Swaps: 44
+//Number of Mappings: 8
+//Depth: 98
+//Number of Gates: 160
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[8];
+creg c[8];
+//Location of qubits: 2,0,3,4,1,5,6,7
+cx q[2], q[0];
+cx q[2], q[3];
+cx q[2], q[4];
+//Insert 3 Swap Gates
+swp q[0], q[1];
+swp q[3], q[5];
+swp q[4], q[6];
+//Location of qubits: 2,1,5,6,0,3,4,7
+cx q[2], q[0];
+cx q[2], q[3];
+cx q[2], q[4];
+//Insert 8 Swap Gates
+swp q[2], q[0];
+swp q[0], q[1];
+swp q[1], q[3];
+swp q[3], q[5];
+swp q[6], q[4];
+swp q[4], q[2];
+swp q[3], q[2];
+swp q[0], q[2];
+//Location of qubits: 5,2,0,3,4,1,6,7
+cx q[5], q[7];
+cx q[2], q[0];
+cx q[2], q[3];
+cx q[2], q[4];
+//Insert 8 Swap Gates
+swp q[5], q[3];
+swp q[0], q[1];
+swp q[3], q[1];
+swp q[3], q[5];
+swp q[5], q[7];
+swp q[4], q[6];
+swp q[4], q[5];
+swp q[3], q[5];
+//Location of qubits: 1,2,7,5,6,0,3,4
+cx q[2], q[0];
+cx q[2], q[3];
+cx q[2], q[4];
+cx q[7], q[5];
+cx q[7], q[6];
+//Insert 8 Swap Gates
+swp q[2], q[3];
+swp q[3], q[5];
+swp q[5], q[4];
+swp q[4], q[6];
+swp q[7], q[5];
+swp q[4], q[2];
+swp q[2], q[0];
+swp q[3], q[2];
+//Location of qubits: 1,6,5,2,0,3,4,7
+cx q[5], q[3];
+cx q[5], q[4];
+cx q[5], q[7];
+cx q[2], q[0];
+cx q[2], q[3];
+cx q[2], q[4];
+//Insert 5 Swap Gates
+swp q[5], q[7];
+swp q[2], q[3];
+swp q[0], q[2];
+swp q[4], q[5];
+swp q[3], q[5];
+//Location of qubits: 1,6,7,5,2,0,3,4
+cx q[5], q[4];
+cx q[2], q[0];
+cx q[2], q[3];
+cx q[2], q[4];
+//Insert 5 Swap Gates
+swp q[1], q[3];
+swp q[7], q[5];
+swp q[2], q[4];
+swp q[6], q[4];
+swp q[7], q[6];
+//Location of qubits: 3,4,5,6,7,0,1,2
+cx q[0], q[1];
+cx q[0], q[2];
+//Insert 7 Swap Gates
+swp q[3], q[2];
+swp q[4], q[5];
+swp q[6], q[7];
+swp q[0], q[1];
+swp q[1], q[3];
+swp q[5], q[3];
+swp q[7], q[5];
+//Location of qubits: 2,3,4,5,6,7,0,1
+cx q[0], q[1];
